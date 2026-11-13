@@ -27,3 +27,34 @@ body{background:radial-gradient(ellipse at 50% 4%,#56338a 0,transparent 38%),rad
 @media(max-width:390px){.role-mini{width:29px;height:32px;flex-basis:29px}.role-row{grid-template-columns:minmax(0,1fr) 66px 24px;gap:5px}.result-role-art{width:36px;height:36px;flex-basis:36px}.vote-report .report-details{padding-left:44px}}
 .playing-card:disabled{opacity:.55;cursor:not-allowed;filter:grayscale(.65)}.personal-record{padding:12px 16px;margin:12px 0 18px}.personal-record summary{cursor:pointer;color:var(--gold);font-weight:800}.record-content{display:grid;gap:8px;margin-top:12px;line-height:1.7}.record-content ul{margin:0;padding-left:22px}
 .night-showcase{background-image:linear-gradient(180deg,#13132c6b,#231437ed),url('./assets/night-village.png');background-position:center 42%}.night-showcase .role-portrait{height:155px;width:min(184px,52vw);margin-top:3px}.night-showcase h1{margin-top:3px}.guide-entry:has(.guide-art){display:grid;grid-template-columns:58px minmax(0,1fr);align-items:center;gap:12px}.guide-art{width:56px;height:57px;object-fit:cover;object-position:top;border:1px solid #e8c97f;border-radius:11px;background:linear-gradient(145deg,#fff0cf,#e4c291);box-shadow:0 3px 8px #07051077}.guide-entry:has(.guide-art) p{margin-top:3px}.guide-entry:has(.guide-art) b{color:#fff0c8}
+
+/* Final polish: make the supplied character and card art the focal point. */
+.role-showcase{text-align:center;position:relative;overflow:hidden;isolation:isolate}
+.role-showcase:before{content:'';position:absolute;z-index:-1;width:250px;height:210px;left:50%;top:18px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(ellipse,#ffdf8466 0, #c882ed30 40%,transparent 72%);filter:blur(8px)}
+.role-portrait{display:block;width:min(225px,64vw);height:205px;object-fit:contain;object-position:center bottom;margin:0 auto;filter:drop-shadow(0 9px 8px #080511b8)}
+.night-showcase .role-portrait{width:min(205px,58vw);height:190px}
+.role-showcase h1{margin-left:auto;margin-right:auto}
+.panel{background:linear-gradient(145deg,#30233dF2,#1d1830F5 55%,#19152c);border-color:#c898635c;box-shadow:inset 0 1px #fff2,0 5px 0 #100d20,0 12px 25px #08061155}
+.panel-title{color:#ffe8b5;font-weight:800;letter-spacing:.015em}
+.phase-card:not(.morning-showcase){background-image:linear-gradient(145deg,#30233ddd,#201832eF),url('./assets/night-village.png');background-size:cover;background-position:center 43%}
+.phase-card:not(.morning-showcase) p{color:#f2e4ee}
+.button-primary{background:linear-gradient(180deg,#ffe995,#ffc64e 58%,#e99a32);border:1px solid #fff1ab;color:#4a2a36;text-shadow:0 1px #fff5c2;box-shadow:0 6px 0 #8e4b36,0 11px 25px #ffb73866,inset 0 2px #fffbdc;font-weight:900}
+.button-secondary{background:linear-gradient(180deg,#473450,#2d223e);border-color:#b183b366;box-shadow:inset 0 1px #fff2,0 4px 0 #171024;color:#fff5de}
+.button:hover:not(:disabled),.icon-button:hover{filter:brightness(1.09);transform:translateY(-1px)}
+.playing-card{flex-basis:124px;min-height:177px;padding:12px 10px;border-radius:15px 15px 18px 18px;transition:transform .18s,box-shadow .18s,border-color .18s}
+.card-art{width:82px;height:82px;border-radius:12px;box-shadow:0 4px 9px #37243d88}
+.playing-card.selected{transform:translateY(-7px) rotate(-1deg)}
+.seat{background:linear-gradient(155deg,#322640,#201a33);border-color:#9870a25c;box-shadow:inset 0 1px #fff1,0 3px 0 #120f22;transition:transform .15s,border-color .15s,background .15s}
+.seat:hover{transform:translateY(-2px);border-color:#efc778}
+.seat.selected{background:linear-gradient(145deg,#6a4a55,#372640);box-shadow:0 0 0 2px #ffd36e4d,0 5px 14px #ffcb4e26}
+.result-card{box-shadow:inset 0 1px #fff1,0 3px 8px #0906112e}
+.role-mini,.guide-art{object-position:center;background:#33243f}
+.phase-pill{padding:8px 13px;font-size:11px;box-shadow:inset 0 1px #fff5,0 3px 0 #28162d}
+.timer{padding:6px 9px;border:1px solid #d7af6b55;border-radius:12px;background:#251b35;color:#ffe9bd;font-variant-numeric:tabular-nums}
+.feature{background:linear-gradient(160deg,#352744d9,#20182fd9);border-color:#c49a614a;box-shadow:inset 0 1px #fff1,0 4px 12px #08061155}
+.feature b{color:#ffe8b3}
+.topbar{backdrop-filter:blur(9px)}
+.icon-button:focus-visible,.button:focus-visible,.seat:focus-visible,.playing-card:focus-visible,.input:focus-visible{outline:3px solid #ffe386;outline-offset:3px}
+@media(max-width:390px){.role-portrait{width:min(195px,61vw);height:185px}.night-showcase .role-portrait{height:170px}.playing-card{flex-basis:116px;min-height:170px}.card-art{width:76px;height:76px}}
+@media(prefers-reduced-motion:no-preference){.hero-mascots img{animation:mascot-drift 4.5s ease-in-out infinite}.hero-mascots .hero-wolf{animation-delay:-2.2s}.phase-step.active{animation:active-glow 2.5s ease-in-out infinite alternate}@keyframes mascot-drift{0%,100%{translate:0 0}50%{translate:0 -4px}}@keyframes active-glow{from{box-shadow:0 0 0 3px #ffb73544,0 0 14px #ffcb4e,inset 0 2px #fffbd6}to{box-shadow:0 0 0 4px #ffb73577,0 0 24px #ffcb4e,inset 0 2px #fffbd6}}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
