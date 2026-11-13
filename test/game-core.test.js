@@ -106,6 +106,27 @@ test('Vampire can choose either grave role; Doctor can choose clinic rest', () =
   assert.equal(doctorRoom.actionLog[0].kind, '休診');
 });
 
+test('Researcher reveals the selected player’s role from before night actions', () => {
+  const room = makeRoom({});
+  room.players.forEach((player, i) => {
+    player.originalRole = ['villager', 'seer', 'doctor', 'madman', 'wolf'][i];
+    player.role = player.originalRole;
+  });
+  room.players[4].role = 'villager'; // Doctor changed the current role after night actions.
+  room.grave = ['bigwolf', 'teruteru'];
+  room.submissions = new Map([
+    ['p0', { cardId: 'researcher', targetId: 'p4' }],
+    ['p1', { cardId: 'researcher', targetId: 'p4' }],
+    ['p2', { cardId: 'researcher', targetId: 'p4' }],
+    ['p3', { cardId: 'selfhelp' }],
+    ['p4', { cardId: 'selfhelp' }]
+  ]);
+  resolveCardSubmissions(room, noSwap);
+  const reveal = room.cardResults.find(item => item.kind === '研究員');
+  assert.equal(reveal.role, 'wolf');
+  assert.match(reveal.text, /夜の行動前/);
+});
+
 test('Savior needs a strict participant majority and Shadow needs every current wolf-team member', () => {
   const room = makeRoom({});
   room.players.forEach((player, i) => { player.role = ['wolf', 'bigwolf', 'madman', 'villager', 'villager'][i]; });

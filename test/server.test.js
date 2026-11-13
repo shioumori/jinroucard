@@ -99,7 +99,7 @@ test('HTTP/SSE multiplayer flow keeps private roles and hands isolated through t
     const role = value.private.role;
     const other = value.players.find(player => player.id !== value.private.playerId);
     if (role === 'seer') return { type: 'seer', targetId: other.id };
-    if (role === 'doctor') return { type: 'doctor', targetId: 'rest' };
+    if (role === 'doctor') return { type: 'doctor', targetId: other.id };
     if (role === 'vampire') return { type: 'vampire', targetId: 'grave' };
     return { type: 'pass' };
   });
@@ -109,10 +109,14 @@ test('HTTP/SSE multiplayer flow keeps private roles and hands isolated through t
     assert.equal(value.private.hand.length, 3);
     assert.equal(new Set(value.private.hand.map(item => item.id)).size, 3);
     assert.equal(value.publicCards.length, 0);
+    assert.equal(value.private.role, value.private.originalRole, 'players targeted by doctor keep seeing their starting role');
   }
 
   for (const value of dealingStates) await post('/api/action', { code: host.code, token: value.private.token, action: 'ready' });
   const morningStates = await Promise.all(streams.map(stream => stream.waitFor(value => value.phase === 'morning')));
+  await post('/api/action', { code: host.code, token: host.token, action: 'claim', claimType: 'role', roleId: 'villager' });
+  const claimStates = await Promise.all(streams.map(stream => stream.waitFor(value => value.claims?.some(claim => claim.playerId === value.private.playerId) || value.claims?.length)));
+  assert.equal(claimStates.every(value => value.claims.some(claim => claim.claimType === 'role' && claim.roleId === 'villager')), true, 'role claims are public statements and need not match the real role');
   await post('/api/action', { code: host.code, token: host.token, action: 'chat', message: '朝のチャット確認' });
   const chattedStates = await Promise.all(streams.map(stream => stream.waitFor(value => value.messages.some(message => message.text === '朝のチャット確認'))));
   assert.equal(chattedStates.every(value => value.messages.some(message => message.name === 'ホスト')), true);
@@ -123,14 +127,13 @@ test('HTTP/SSE multiplayer flow keeps private roles and hands isolated through t
     const targetId = ['researcher', 'ballot'].includes(choice.id) ? value.players.find(player => player.id !== value.private.playerId).id : undefined;
     await post('/api/action', { code: host.code, token: value.private.token, action: 'card', cardId: choice.id, targetId });
   }
-  const resultStates = await Promise.all(streams.map(stream => stream.waitFor(value => value.phase === 'results')));
-  assert.equal(resultStates.every(value => value.publicCards.length === 3), true);
-  assert.equal(resultStates.every(value => value.publicCards.every(item => !Object.hasOwn(item, 'playerId'))), true, 'card owners remain hidden before the final reveal');
-
-  for (const value of resultStates) await post('/api/action', { code: host.code, token: value.private.token, action: 'ready' });
   const discussionStates = await Promise.all(streams.map(stream => stream.waitFor(value => value.phase === 'lastTalk')));
+  assert.equal(discussionStates.every(value => value.publicCards.length === 3), true, 'card submissions go straight to the final discussion');
+  assert.equal(discussionStates.every(value => value.publicCards.every(item => !Object.hasOwn(item, 'playerId'))), true, 'card owners remain hidden before the final reveal');
   for (const value of discussionStates) await post('/api/action', { code: host.code, token: value.private.token, action: 'ready' });
   const voteStates = await Promise.all(streams.map(stream => stream.waitFor(value => value.phase === 'vote')));
+  const ownVoteResponse = await fetch(`${base}/api/action`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: host.code, token: voteStates[0].private.token, action: 'vote', targetId: voteStates[0].private.playerId }) });
+  assert.equal(ownVoteResponse.status, 400, 'a player cannot vote for themselves');
   for (let i = 0; i < voteStates.length; i++) {
     const value = voteStates[i];
     await post('/api/action', { code: host.code, token: value.private.token, action: 'vote', targetId: value.players[(i + 1) % value.players.length].id });

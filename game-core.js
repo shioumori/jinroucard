@@ -17,7 +17,7 @@ const ROLES = [
 const CARDS = [
   { id: 'savior', name: '救世主', icon: '✦', desc: '参加者の過半数が出した場合、現在の人狼への投票に1票加えます。' },
   { id: 'shadow', name: 'シャドウ', icon: '◐', desc: '人狼・大狼・狂人が全員出した場合、現在の人狼への投票から1票減らします。' },
-  { id: 'researcher', name: '研究員', icon: '⌕', desc: '参加者の過半数以上の研究員が同じ人を選ぶと、夜の行動後の役職を公開します。' },
+  { id: 'researcher', name: '研究員', icon: '⌕', desc: '参加者の過半数以上の研究員が同じ人を選ぶと、夜の行動前の役職を公開します。' },
   { id: 'selfhelp', name: '自己啓発', icon: '◇', desc: '自分が夜の能力対象だったか確認します。' },
   { id: 'reveal', name: '自己開示', icon: '◎', desc: '元の役職が人狼・大狼でなかったと証明します。' },
   { id: 'monk', name: 'お坊さん', icon: '☼', desc: '過半数が使用すると墓場の役職を1枚確認します。' },
@@ -163,7 +163,8 @@ function resolveCardSubmissions(room, below = randomInt) {
   for (const [targetId, n] of byTarget) {
     if (n >= researcherThreshold) {
       const target = playerById(room, targetId);
-      room.cardResults.push({ kind: '研究員', targetId, role: target.role, text: `夜の行動後、${target.name}の役職は「${roleName(target.role)}」です。` });
+      const observedRole = target.originalRole || target.role;
+      room.cardResults.push({ kind: '研究員', targetId, role: observedRole, text: `夜の行動前、${target.name}の役職は「${roleName(observedRole)}」でした。` });
     }
   }
   if (rows.filter(row => row.cardId === 'monk').length > room.players.length / 2) {

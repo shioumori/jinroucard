@@ -95,6 +95,7 @@ function publicState(room, viewer) {
     voteSubmittedCount: room.players.filter(player => player.voteSubmitted).length,
     cardResults: ['results', 'lastTalk', 'vote', 'ending'].includes(room.phase) ? room.cardResults : [],
     publicCards: ['results', 'lastTalk', 'vote', 'ending'].includes(room.phase) ? room.publicCards : [],
+    claims: ['morning', 'lastTalk', 'vote', 'ending'].includes(room.phase) ? room.claims.filter(claim => claim.round === room.round) : [],
     messages: room.messages.filter(message => message.round === room.round),
     scores: Object.fromEntries(room.scores)
   };
@@ -116,7 +117,8 @@ function publicState(room, viewer) {
         scoreChange: room.outcome.scoreChanges[player.id] || 0,
         totalScore: room.scores.get(player.id) || 0
       })),
-      actionLog: room.actionLog.map(row => ({ ...row }))
+      actionLog: room.actionLog.map(row => ({ ...row })),
+      claims: room.claims.filter(claim => claim.round === room.round)
     };
   }
   const ownSubmission = room.submissions.get(viewer.id);
@@ -130,7 +132,11 @@ function publicState(room, viewer) {
     grave: viewer.originalRole === 'bigwolf' && !ending ? room.grave : undefined,
     hand: viewer.hand,
     nightInfo: viewer.nightInfo,
-    ownActions: room.actionLog.filter(row => row.actorId === viewer.id).map(row => ({ ...row })),
+    ownActions: room.actionLog.filter(row => row.actorId === viewer.id).map(row => {
+      if (row.kind !== '治療') return { ...row };
+      const { beforeRole, ...privateAction } = row;
+      return privateAction;
+    }),
     cardInfo: viewer.cardInfo,
     submittedCardId: ownSubmission?.cardId || null,
     submittedCardTargetId: ownSubmission?.targetId || null,
@@ -209,6 +215,7 @@ function resetRound(room) {
   room.ready.clear(); room.nightActions.clear(); room.submissions.clear(); room.votes.clear();
   room.cardResults = []; room.publicCards = []; room.actionLog = []; room.outcome = null; room.cardModifiers = null;
   room.messages = [];
+  room.claims = [];
   for (const player of room.players) {
     player.role = null; player.originalRole = null; player.hand = [];
     player.actionSubmitted = false; player.cardSubmitted = false; player.voteSubmitted = false;
@@ -234,10 +241,52 @@ function startDiscussionTimer(room, phase) {
   room.phaseTimer = setTimeout(() => {
     if (room.phase !== phase) return;
     room.ready.clear();
+    room.phaseTimer = null;
+    room.phaseEndsAt = null;
     room.phase = phase === 'morning' ? 'cards' : 'vote';
-    clearPhaseTimer(room);
+    startActionTimer(room, room.phase);
     broadcast(room);
   }, seconds * 1000);
+}
+
+function startActionTimer(room, phase) {
+  clearPhaseTimer(room);
+  if (!['cards', 'vote'].includes(phase)) return;
+  const seconds = 15;
+  room.phaseEndsAt = Date.now() + seconds * 1000;
+  room.phaseTimer = setTimeout(() => {
+    if (room.phase !== phase) return;
+    room.phaseTimer = null;
+    room.phaseEndsAt = null;
+    if (phase === 'cards') {
+      for (const player of room.players) {
+        if (player.cardSubmitted) continue;
+        const hand = player.hand.filter(item => item.id !== 'reveal' || !['wolf', 'bigwolf'].includes(player.originalRole));
+        const selected = hand[randomInt(hand.length)];
+        const targetId = ['researcher', 'ballot'].includes(selected.id) ? room.players[randomInt(room.players.length)].id : null;
+        player.cardSubmitted = true;
+        room.submissions.set(player.id, { cardId: selected.id, targetId });
+      }
+      resolveCardSubmissions(room);
+      enterLastTalk(room);
+    } else {
+      for (const player of room.players) {
+        if (player.voteSubmitted) continue;
+        const candidates = room.players.filter(item => item.id !== player.id).map(item => item.id).concat('peace');
+        player.voteSubmitted = true;
+        room.votes.set(player.id, candidates[randomInt(candidates.length)]);
+      }
+      clearPhaseTimer(room);
+      resolveVotes(room);
+    }
+    broadcast(room);
+  }, seconds * 1000);
+}
+
+function enterLastTalk(room) {
+  room.phase = 'lastTalk';
+  room.ready.clear();
+  startDiscussionTimer(room, 'lastTalk');
 }
 
 function advanceReadyPhase(room, player) {
@@ -253,6 +302,7 @@ function advanceReadyPhase(room, player) {
   else if (previous === 'results') room.phase = 'lastTalk';
   else if (previous === 'lastTalk') room.phase = 'vote';
   if (['morning', 'lastTalk'].includes(room.phase)) startDiscussionTimer(room, room.phase);
+  else if (['cards', 'vote'].includes(room.phase)) startActionTimer(room, room.phase);
 }
 
 function validateNightChoice(room, player, choice) {
@@ -281,9 +331,7 @@ function submitCard(room, player, body) {
   room.submissions.set(player.id, { cardId: card.id, targetId });
   if (room.players.every(item => item.cardSubmitted)) {
     resolveCardSubmissions(room);
-    room.phase = 'lastTalk';
-    room.ready.clear();
-    startDiscussionTimer(room, 'lastTalk');
+    enterLastTalk(room);
   }
 }
 
@@ -293,7 +341,10 @@ function submitVote(room, player, targetId) {
   if (!validTarget) throw new Error(targetId === player.id ? '自分には投票できません。' : '投票先を選んでください。');
   player.voteSubmitted = true;
   room.votes.set(player.id, targetId);
-  if (room.players.every(item => item.voteSubmitted)) resolveVotes(room);
+  if (room.players.every(item => item.voteSubmitted)) {
+    clearPhaseTimer(room);
+    resolveVotes(room);
+  }
 }
 
 function applyAction(room, player, body) {
@@ -304,6 +355,20 @@ function applyAction(room, player, body) {
     if (!text || text.length > 300) throw new Error('メッセージは1〜300文字で入力してください。');
     room.messages.push({ playerId: player.id, name: player.name, text, phase: room.phase, round: room.round, at: Date.now() });
     if (room.messages.length > 100) room.messages.splice(0, room.messages.length - 100);
+    return;
+  }
+  if (action === 'claim') {
+    if (!['morning', 'lastTalk'].includes(room.phase)) throw new Error('カミングアウトは会議中に行えます。');
+    if (room.claims.filter(claim => claim.round === room.round && claim.playerId === player.id && claim.phase === room.phase).length >= 3) {
+      throw new Error('この会議ではカミングアウトは3回までです。');
+    }
+    if (room.claims.filter(claim => claim.round === room.round).length >= 40) throw new Error('この試合のカミングアウト上限に達しました。');
+    const { claimType, roleId, targetId, resultRoleId } = body;
+    if (!['role', 'seer', 'vampire', 'doctor', 'grave'].includes(claimType)) throw new Error('表明の種類を選んでください。');
+    if (!ROLE_BY_ID.has(roleId)) throw new Error('役職を選んでください。');
+    if (['seer', 'vampire', 'doctor'].includes(claimType) && !room.players.some(item => item.id === targetId)) throw new Error('相手プレイヤーを選んでください。');
+    if (claimType === 'vampire' && !ROLE_BY_ID.has(resultRoleId)) throw new Error('交換後の役職を選んでください。');
+    room.claims.push({ playerId: player.id, claimType, roleId, targetId: targetId || null, resultRoleId: resultRoleId || null, phase: room.phase, round: room.round, at: Date.now() });
     return;
   }
   switch (action) {
@@ -386,7 +451,7 @@ async function handle(req, res) {
         const room = {
           code, count: body.count, roleCounts: Object.fromEntries(ROLES.map(role => [role.id, body.roleCounts[role.id] || 0])),
           players: [], scores: new Map(), phase: 'lobby', round: 0, ready: new Set(),
-          nightActions: new Map(), submissions: new Map(), votes: new Map(), actionLog: [], cardResults: [], publicCards: [], messages: [], discussionSeconds: { morning: 120, lastTalk: 120 }, phaseTimer: null, phaseEndsAt: null, createdAt: Date.now(), lastActivity: Date.now()
+          nightActions: new Map(), submissions: new Map(), votes: new Map(), actionLog: [], cardResults: [], publicCards: [], messages: [], claims: [], discussionSeconds: { morning: 120, lastTalk: 120 }, phaseTimer: null, phaseEndsAt: null, createdAt: Date.now(), lastActivity: Date.now()
         };
         const player = newPlayer(body.name, true);
         room.players.push(player); room.scores.set(player.id, 0); rooms.set(code, room);
