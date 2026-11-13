@@ -120,9 +120,12 @@ function publicState(room, viewer) {
     };
   }
   const ownSubmission = room.submissions.get(viewer.id);
+  const ownExchange = [...room.actionLog].reverse().find(row => row.kind === '交換' && row.actorId === viewer.id);
   data.private = {
     playerId: viewer.id, name: viewer.name, token: viewer.token, isHost: viewer.host,
-    role: viewer.role, originalRole: viewer.originalRole,
+    // Only the vampire is told their new role. Other targets keep seeing their starting role until the reveal.
+    role: ending ? viewer.role : ownExchange?.actorAfterRole || viewer.originalRole || viewer.role,
+    originalRole: viewer.originalRole,
     allies: viewer.knownAllies || [],
     grave: viewer.originalRole === 'bigwolf' && !ending ? room.grave : undefined,
     hand: viewer.hand,
@@ -278,15 +281,16 @@ function submitCard(room, player, body) {
   room.submissions.set(player.id, { cardId: card.id, targetId });
   if (room.players.every(item => item.cardSubmitted)) {
     resolveCardSubmissions(room);
-    room.phase = 'results';
+    room.phase = 'lastTalk';
     room.ready.clear();
+    startDiscussionTimer(room, 'lastTalk');
   }
 }
 
 function submitVote(room, player, targetId) {
   if (player.voteSubmitted) throw new Error('投票済みです。');
-  const validTarget = targetId === 'peace' || room.players.some(item => item.id === targetId);
-  if (!validTarget) throw new Error('投票先を選んでください。');
+  const validTarget = targetId === 'peace' || room.players.some(item => item.id === targetId && item.id !== player.id);
+  if (!validTarget) throw new Error(targetId === player.id ? '自分には投票できません。' : '投票先を選んでください。');
   player.voteSubmitted = true;
   room.votes.set(player.id, targetId);
   if (room.players.every(item => item.voteSubmitted)) resolveVotes(room);
