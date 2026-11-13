@@ -36,6 +36,8 @@ function esc(value) {
 }
 function role(id) { return ROLES.find(item => item.id === id) || { name: '不明', team: '不明' }; }
 function card(id) { return CARDS.find(item => item.id === id) || { name: '不明', icon: '？' }; }
+function rolePortrait(id) { return ['wolf', 'bigwolf'].includes(id) ? './assets/werewolf.png' : id === 'villager' ? './assets/villager.png' : `./assets/roles/${id}.png`; }
+function cardArtwork(id) { return `./assets/cards/${encodeURIComponent(id)}.png`; }
 function total(counts) { return Object.values(counts).reduce((sum, n) => sum + Number(n || 0), 0); }
 function showToast(message) {
   const toast = document.querySelector('#toast');
@@ -51,12 +53,12 @@ function render() {
   renderHome();
 }
 function renderHome() {
-  app.innerHTML = `${state.error ? `<div class="alert">${esc(state.error)}</div>` : ''}<section class="hero"><div class="moon"></div><span class="eyebrow">A ONE NIGHT CARD GAME</span><h1>夜明け前、<br>真実はカードの中。</h1><p>役職とカードを手がかりに、<br>誰が味方で誰が嘘つきか見抜こう。</p></section><div class="actions"><button class="button button-primary" id="createRoom">部屋をつくる →</button><button class="button button-secondary" id="joinRoom">部屋に参加する</button></div><div class="feature-row"><div class="feature"><b>🌙 一夜限り</b><span>秘密の役職と<br>最後の投票</span></div><div class="feature"><b>🂡 ひみつの手札</b><span>8種類のカードで<br>流れを変える</span></div><div class="feature"><b>👥 3〜8人</b><span>部屋コードで<br>オンライン対戦</span></div></div><div class="callout" style="margin-top:20px">参加者ごとの秘密情報はサーバーから本人にだけ送信します。</div>`;
+  app.innerHTML = `${state.error ? `<div class="alert">${esc(state.error)}</div>` : ''}<section class="hero"><div class="moon"></div><span class="eyebrow">A ONE NIGHT CARD GAME</span><h1>夜明け前<br><strong>人狼</strong></h1><p>〜カードで紡ぐ、真実の夜〜</p><div class="hero-mascots" aria-hidden="true"><img class="hero-villager" src="./assets/villager.png" alt=""><span class="hero-orb">✦</span><img class="hero-wolf" src="./assets/werewolf.png" alt=""></div><div class="hero-caption">月明かりの村で、物語が始まる</div></section><div class="actions"><button class="button button-primary" id="createRoom">ゲームを始める →</button><button class="button button-secondary" id="joinRoom">部屋に参加する</button></div><div class="feature-row"><div class="feature"><b>🌙 一夜限り</b><span>秘密の役職と<br>最後の投票</span></div><div class="feature"><b>🂡 ひみつの手札</b><span>8種類のカードで<br>流れを変える</span></div><div class="feature"><b>👥 3〜8人</b><span>部屋コードで<br>オンライン対戦</span></div></div><div class="callout" style="margin-top:20px">参加者ごとの秘密情報はサーバーから本人にだけ送信します。</div>`;
   document.querySelector('#createRoom').onclick = () => { state.page = 'setup'; state.error = ''; render(); };
   document.querySelector('#joinRoom').onclick = () => { state.page = 'join'; state.error = ''; render(); };
 }
 function roleRows(counts, playerCount, editable) {
-  return ROLES.map(item => `<div class="role-row"><div><div class="role-name"><i class="role-dot" style="--role-color:${item.color}"></i>${item.name}</div><span class="role-desc">${item.team}</span></div>${editable ? `<div class="stepper"><button type="button" data-role="${item.id}" data-delta="-1">−</button><b>${counts[item.id] || 0}</b><button type="button" data-role="${item.id}" data-delta="1">+</button></div>` : `<strong>${counts[item.id] || 0}</strong>`}<span></span></div>`).join('');
+  return ROLES.map(item => `<div class="role-row"><div class="role-label"><img class="role-mini" src="./assets/roles/${item.id}.png" alt=""><div><div class="role-name">${item.name}</div><span class="role-desc">${item.team}</span></div></div>${editable ? `<div class="stepper"><button type="button" data-role="${item.id}" data-delta="-1">−</button><b>${counts[item.id] || 0}</b><button type="button" data-role="${item.id}" data-delta="1">+</button></div>` : `<strong>${counts[item.id] || 0}</strong>`}<span></span></div>`).join('');
 }
 function fitCounts(nextCount) {
   state.count = nextCount;
@@ -189,7 +191,10 @@ function progressWidth(phase) {
   return ({ lobby: 3, role: 12, night: 24, dealing: 34, morning: 44, cards: 57, results: 67, lastTalk: 78, vote: 89, ending: 100 })[phase] || 0;
 }
 function phaseHeader(room) {
-  return `<div class="game-top"><span class="phase-pill">${phaseTitle(room.phase)}</span><span class="timer">${room.round ? `${room.round}試合目` : '部屋コード：' + esc(room.code)}</span></div><div class="progress"><i style="width:${progressWidth(room.phase)}%"></i></div>`;
+  const sequence = [{ label: '役職確認', icon: '🎭' }, { label: '夜の行動', icon: '☾' }, { label: '朝の会議', icon: '☼' }, { label: 'カード提出', icon: '▤' }, { label: '最後の会議', icon: '♛' }];
+  const index = ({ role: 0, night: 1, dealing: 1, morning: 2, cards: 3, results: 4, lastTalk: 4, vote: 4, ending: 4 })[room.phase] ?? 0;
+  const steps = room.phase === 'lobby' ? '' : `<nav class="phase-steps" aria-label="ゲームの進行">${sequence.map((step, i) => `<div class="phase-step ${i < index ? 'done' : i === index ? 'active' : ''}" ${i === index ? 'aria-current="step"' : ''}><span>${step.icon}</span><b>${step.label}</b></div>`).join('')}</nav>`;
+  return `<div class="game-top"><span class="phase-pill">${phaseTitle(room.phase)}</span><span class="timer">${room.round ? `${room.round}試合目` : '部屋コード：' + esc(room.code)}</span></div>${steps}`;
 }
 function playerList(room) {
   return `<div class="player-list">${room.players.map(player => `<div class="player-item"><span class="avatar">${esc(player.name.slice(0, 1))}</span>${esc(player.name)}${player.isHost ? '<em>ホスト</em>' : ''}<em>${player.online ? (player.ready ? '準備OK' : 'オンライン') : '再接続待ち'}</em></div>`).join('')}</div>`;
@@ -231,7 +236,7 @@ function renderRoleOnline() {
   const room = state.room, self = room.private, ownRole = role(self.role);
   const allies = self.allies?.length ? onlinePanel('確認できる人狼の仲間', self.allies.map(p => `<div class="result-card"><b>${esc(p.name)}</b><span>${role(p.role).name}</span></div>`).join('')) : '';
   const grave = self.role === 'bigwolf' ? onlinePanel('墓場（大狼だけに表示）', (self.grave || []).map((id, i) => `<div class="result-card"><b>墓場 ${i + 1}枚目</b><span>${role(id).name}</span></div>`).join('')) : '';
-  app.innerHTML = `${phaseHeader(room)}<section class="phase-card"><span class="eyebrow">YOUR SECRET ROLE</span><h1>${ownRole.name}</h1><p>${ownRole.desc}</p><div class="secret-role"><span>あなたの陣営</span><strong>${ownRole.team}</strong></div></section>${allies}${grave}<div class="callout">${self.role === 'madman' ? '狂人には人狼・大狼が誰かは表示されません。' : 'この画面の役職情報はあなただけに送られています。'}準備ができたら次へ進んでください。</div><div class="phase-actions">${readyButton('役職を確認した →')}</div>`;
+  app.innerHTML = `${phaseHeader(room)}<section class="phase-card role-showcase"><span class="eyebrow">YOUR SECRET ROLE</span><img class="role-portrait" src="${rolePortrait(self.role)}" alt="${ownRole.name}のキャラクター"><h1>${ownRole.name}</h1><p>${ownRole.desc}</p><div class="secret-role"><span>あなたの陣営</span><strong>${ownRole.team}</strong></div></section>${allies}${grave}<div class="callout">${self.role === 'madman' ? '狂人には人狼・大狼が誰かは表示されません。' : 'この画面の役職情報はあなただけに送られています。'}準備ができたら次へ進んでください。</div><div class="phase-actions">${readyButton('役職を確認した →')}</div>`;
   wireReady();
 }
 function targetButtons(players, selected, options = []) {
@@ -244,7 +249,7 @@ function renderNightOnline() {
   const already = self.ownActionSubmitted;
   const grave = self.role === 'bigwolf' ? onlinePanel('墓場（大狼だけに表示）', (self.grave || []).map((id, i) => `<div class="result-card"><b>墓場 ${i + 1}枚目</b><span>${role(id).name}</span></div>`).join('')) : '';
   const action = active ? `<div class="label">${self.role === 'doctor' ? '治療先を選ぶ（休診できます）' : '対象を選ぶ'}</div>${targetButtons(room.players.filter(p => p.id !== self.playerId), state.pendingTarget, opts)}<button class="button button-primary" id="sendNight" ${state.pendingTarget ? '' : 'disabled'}>行動を確定する →</button>` : `<button class="button button-primary" id="sendNight">${self.role === 'bigwolf' ? '墓場を確認した →' : '夜の確認を終える →'}</button>`;
-  app.innerHTML = `${phaseHeader(room)}<section class="phase-card"><span class="eyebrow">NIGHT ACTION</span><h1>${ownRole.name}</h1><p>${active ? ownRole.desc : '能力の確認を終えたら次へ進みます。'}</p></section>${grave}${already ? `<div class="callout">行動を送信しました。ほかのプレイヤーを待っています（${room.actionSubmittedCount} / ${room.players.length}人）。</div>` : action}`;
+  app.innerHTML = `${phaseHeader(room)}<section class="phase-card role-showcase night-showcase"><span class="eyebrow">NIGHT ACTION</span><img class="role-portrait" src="${rolePortrait(self.role)}" alt="${ownRole.name}のキャラクター"><h1>${ownRole.name}</h1><p>${active ? ownRole.desc : '能力の確認を終えたら次へ進みます。'}</p></section>${grave}${already ? `<div class="callout">行動を送信しました。ほかのプレイヤーを待っています（${room.actionSubmittedCount} / ${room.players.length}人）。</div>` : action}`;
   document.querySelectorAll('[data-target]').forEach(button => button.onclick = () => { state.pendingTarget = button.dataset.target; renderNightOnline(); });
   const submit = document.querySelector('#sendNight');
   if (submit && !already) submit.onclick = () => {
@@ -255,13 +260,13 @@ function renderNightOnline() {
 function renderDealingOnline() {
   const room = state.room, self = room.private;
   const nightInfo = self.nightInfo ? `<div class="callout">夜の結果：${esc(self.nightInfo.targetName)}の役職は「${role(self.nightInfo.role).name}」です。</div>` : '';
-  const hand = (self.hand || []).map(item => `<div class="playing-card"><span class="card-icon">${item.icon}</span><b>${item.name}</b><small>${item.desc}</small></div>`).join('');
+  const hand = (self.hand || []).map(item => `<div class="playing-card"><img class="card-art" src="${cardArtwork(item.id)}" alt=""><b>${item.name}</b><small>${item.desc}</small></div>`).join('');
   app.innerHTML = `${phaseHeader(room)}<section class="phase-card"><span class="eyebrow">PRIVATE CARD HAND</span><h1>カードが配られました</h1><p>各プレイヤーに3枚ずつ配られます。手札は本人だけに表示されます。</p></section>${nightInfo}<div class="hand">${hand}</div><div class="callout">カードを確認したら次へ進みます。朝の会議後に1枚提出します。</div><div class="phase-actions">${readyButton('手札を確認した →')}</div>`;
   wireReady();
 }
 function renderMorningOnline() {
   const room = state.room, me = room.players.find(p => p.id === room.private.playerId);
-  app.innerHTML = `${phaseHeader(room)}<section class="phase-card"><span class="eyebrow">MORNING DISCUSSION</span><h1>朝の会議</h1><p>夜の情報をもとに話し合いましょう。${me?.ready ? '会議を終えました。' : '全員が準備できたらカード提出へ進みます。'}</p></section>${onlinePanel('プレイヤー', playerList(room), `${room.players.length}人`)}${chatPanel(room)}<div class="phase-actions">${readyButton('会議を終えてカード提出へ →')}</div>`;
+  app.innerHTML = `${phaseHeader(room)}<section class="phase-card morning-showcase"><div><span class="eyebrow">MORNING DISCUSSION</span><h1>朝の会議</h1><p>夜の情報をもとに話し合いましょう。${me?.ready ? '会議を終えました。' : '全員が準備できたらカード提出へ進みます。'}</p></div><img src="./assets/villager.png" alt="ランタンを掲げる村人" class="meeting-portrait"></section>${onlinePanel('プレイヤー', playerList(room), `${room.players.length}人`)}${chatPanel(room)}<div class="phase-actions">${readyButton('会議を終えてカード提出へ →')}</div>`;
   wireChat();
   wireReady();
 }
@@ -270,7 +275,7 @@ function renderCardsOnline() {
   const room = state.room, self = room.private, submitted = self.ownCardSubmitted;
   const selected = (self.hand || []).find(item => item.id === state.pendingCard);
   const targets = needsTarget(selected?.id) ? `<div class="label">カードの対象を選ぶ</div>${targetButtons(room.players, state.pendingTarget)}` : '';
-  const hand = (self.hand || []).map((item, index) => `<button class="playing-card ${state.pendingCard === item.id ? 'selected' : ''}" data-card="${item.id}"><span class="card-icon">${item.icon}</span><b>${item.name}</b><small>${item.desc}</small>${state.pendingCard === item.id ? '<span class="card-mark">✓</span>' : ''}</button>`).join('');
+  const hand = (self.hand || []).map(item => `<button class="playing-card ${state.pendingCard === item.id ? 'selected' : ''}" data-card="${item.id}"><img class="card-art" src="${cardArtwork(item.id)}" alt=""><b>${item.name}</b><small>${item.desc}</small>${state.pendingCard === item.id ? '<span class="card-mark">✓</span>' : ''}</button>`).join('');
   app.innerHTML = `${phaseHeader(room)}<section class="phase-card"><span class="eyebrow">PLAY ONE CARD</span><h1>使うカードを選ぶ</h1><p>各プレイヤーの提出カードは、全員が出し終えるまで分かりません。</p></section>${submitted ? `<div class="callout">提出済みです。残り${room.players.length - room.cardSubmittedCount}人の提出を待っています。</div>` : `<div class="hand">${hand}</div>${targets}<button class="button button-primary" id="submitCard" ${selected && (!needsTarget(selected.id) || state.pendingTarget) ? '' : 'disabled'}>このカードを提出する →</button>`}`;
   document.querySelectorAll('[data-card]').forEach(button => button.onclick = () => { state.pendingCard = button.dataset.card; state.pendingTarget = null; renderCardsOnline(); });
   document.querySelectorAll('[data-target]').forEach(button => button.onclick = () => { state.pendingTarget = button.dataset.target; renderCardsOnline(); });
@@ -279,7 +284,7 @@ function renderCardsOnline() {
 }
 function renderResultsOnline() {
   const room = state.room, self = room.private;
-  const exposed = (room.publicCards || []).map(item => `<div class="result-card"><b>${card(item.cardId).icon} ${card(item.cardId).name}</b><span>${item.targetId ? `対象：${esc(room.players.find(p => p.id === item.targetId)?.name || '不明')}` : '提出済み'}</span></div>`).join('');
+  const exposed = (room.publicCards || []).map(item => `<div class="result-card"><img class="result-card-art" src="${cardArtwork(item.cardId)}" alt=""><b>${card(item.cardId).name}</b><span>${item.targetId ? `対象：${esc(room.players.find(p => p.id === item.targetId)?.name || '不明')}` : '提出済み'}</span></div>`).join('');
   const reports = (room.cardResults || []).map(item => `<div class="result-card"><b>${esc(item.kind)}</b><span>${esc(item.text)}</span></div>`).join('');
   app.innerHTML = `${phaseHeader(room)}<section class="phase-card"><span class="eyebrow">CARDS REVEALED</span><h1>カードが出そろいました</h1><p>カードの種類と対象を公開します。誰が出したかはまだ分かりません。</p></section>${onlinePanel('匿名の提出カード', exposed)}${reports ? onlinePanel('追加情報', reports) : ''}${self.cardInfo ? `<div class="callout">${esc(self.cardInfo.text)}</div>` : ''}<div class="phase-actions">${readyButton('確認して最後の会議へ →')}</div>`;
   wireReady();
@@ -318,6 +323,8 @@ function renderVoteOnline() {
 function renderEndingOnline() {
   const room = state.room, outcome = room.outcome, report = outcome.report;
   const title = outcome.winningSide === 'teruteru' ? 'てるてるの単独勝利' : outcome.winningSide === 'wolf' ? '人狼陣営の勝利' : '村人陣営の勝利';
+  const winningPlayers = report.filter(item => item.scoreChange > 0);
+  const winningLineup = winningPlayers.map(item => `<div class="winner-member"><img src="${rolePortrait(item.role)}" alt=""><span>${esc(item.name)}</span></div>`).join('');
   const reason = outcome.peaceOutcome
     ? room.players.some(player => ['wolf', 'bigwolf'].includes(player.role)) ? '得票数が全プレイヤーで同じです。平和村判定となり、人狼・大狼が勝利しました。' : '得票数が全プレイヤーで同じです。平和村判定となり、てるてる・狂人以外が勝利しました。'
     : outcome.peaceVoted ? '平和村が最多票です。プレイヤーは処刑されませんでした。'
@@ -334,7 +341,7 @@ function renderEndingOnline() {
     const cardName = item.cardId ? `${card(item.cardId).name}${cardTarget ? `（対象：${cardTarget}）` : ''}` : 'なし';
     const oldRole = item.originalRole !== item.role ? `（元：${role(item.originalRole).name}）` : '';
     const executed = outcome.executedIds.includes(item.playerId) ? ' ・処刑' : '';
-    return `<div class="result-card vote-report"><b>${esc(item.name)} — ${role(item.role).name}${oldRole}${executed}</b><span>投票先：${esc(voteTarget)} ／ 提出カード：${esc(cardName)} ／ 今回 +${item.scoreChange}点・累計 ${item.totalScore}点</span></div>`;
+    return `<div class="result-card vote-report"><b><img class="result-role-art" src="${rolePortrait(item.role)}" alt=""><span>${esc(item.name)} — ${role(item.role).name}${oldRole}${executed}</span></b><span class="report-details">${item.cardId ? `<img class="result-card-art" src="${cardArtwork(item.cardId)}" alt="">` : ''}投票先：${esc(voteTarget)} ／ 提出カード：${esc(cardName)} ／ 今回 +${item.scoreChange}点・累計 ${item.totalScore}点</span></div>`;
   }).join('');
   const actions = (outcome.actionLog || []).filter(item => ['交換', '治療', '休診'].includes(item.kind)).map(item => {
     const actor = room.players.find(player => player.id === item.actorId)?.name || '不明';
@@ -345,7 +352,7 @@ function renderEndingOnline() {
     return `<div class="result-card"><b>${esc(actor)}（吸血鬼）</b><span>${destination}と役職を交換：${role(item.beforeRole).name} ／ 吸血鬼の交換後は${role(item.actorAfterRole).name}</span></div>`;
   }).join('');
   const grave = room.players.length + 2 - room.count;
-  app.innerHTML = `${phaseHeader(room)}<div class="winner"><div class="winner-icon">${outcome.winningSide === 'teruteru' ? '🎭' : outcome.winningSide === 'wolf' ? '🌘' : '🌅'}</div><span class="eyebrow">THE NIGHT IS OVER</span><h1>${title}</h1><p>${reason}</p></div>${onlinePanel('投票数', `${bars}${outcome.peaceOutcome ? '<div class="total-note">全プレイヤーの得票数が同じため、平和村判定です。</div>' : ''}`)}${onlinePanel('最終公開 — 投票先・役職・カード', results)}${actions ? onlinePanel('夜の行動記録', actions) : ''}${onlinePanel('墓場', (outcome.grave || []).map(id => role(id).name).join('・'))}<div class="phase-actions">${state.room.private.isHost ? '<button class="button button-primary" id="rematch">役職設定に戻って次の試合 →</button>' : '<div class="callout">ホストが次の試合を準備するのを待っています。</div>'}</div>`;
+  app.innerHTML = `${phaseHeader(room)}<div class="ending-screen"><div class="winner-banner ${outcome.winningSide}"><span class="eyebrow">THE NIGHT IS OVER</span><h1>${title}</h1><p>${reason}</p><div class="winner-lineup">${winningLineup || '<span>勝利チームなし</span>'}</div></div><div class="winner"><div class="winner-icon">${outcome.winningSide === 'teruteru' ? '🎭' : outcome.winningSide === 'wolf' ? '🌘' : '🌅'}</div><p>勝利チームに各1ポイント</p></div>${onlinePanel('投票数', `${bars}${outcome.peaceOutcome ? '<div class="total-note">全プレイヤーの得票数が同じため、平和村判定です。</div>' : ''}`)}${onlinePanel('最終公開 — 投票先・役職・カード', results)}${actions ? onlinePanel('夜の行動記録', actions) : ''}${onlinePanel('墓場', (outcome.grave || []).map(id => role(id).name).join('・'))}<div class="phase-actions">${state.room.private.isHost ? '<button class="button button-primary" id="rematch">役職設定に戻って次の試合 →</button>' : '<div class="callout">ホストが次の試合を準備するのを待っています。</div>'}</div></div>`;
   const rematch = document.querySelector('#rematch');
   if (rematch) rematch.onclick = () => send('rematch');
 }
@@ -356,9 +363,9 @@ function guide(type = 'flow') {
   const counts = state.room?.roleCounts || state.roleCounts;
   const entries = type === 'flow'
     ? [['役職確認・夜', '自分の役職を確認し、役職の能力を使います。大狼は墓場を見て、人狼と大狼は仲間を確認します。'], ['カード配布・朝', '各自に3枚配り、朝の会議を行います。'], ['カード提出・公開', '1枚を提出し、全員が出した後にカードを匿名で公開します。'], ['最後の会議・投票', '投票先はプレイヤーまたは平和村です。役職、投票、カードの提出者は試合終了時に公開されます。'], ['勝利・ポイント', '勝利チームに各1点を加算します。平和村の判定と勝利条件は試合結果に表示します。']]
-    : type === 'roles' ? ROLES.map(item => [`${item.name} — ${counts[item.id] || 0}枚`, `${item.team} — ${item.desc}`])
-      : CARDS.map(item => [`${item.icon} ${item.name}`, item.desc]);
-  content.innerHTML = entries.map(([heading, text]) => `<div class="guide-entry"><b>${esc(heading)}</b><p>${esc(text)}</p></div>`).join('');
+    : type === 'roles' ? ROLES.map(item => [`${item.name} — ${counts[item.id] || 0}枚`, `${item.team} — ${item.desc}`, rolePortrait(item.id)])
+      : CARDS.map(item => [`${item.icon} ${item.name}`, item.desc, cardArtwork(item.id)]);
+  content.innerHTML = entries.map(([heading, text, art]) => `<div class="guide-entry">${art ? `<img class="guide-art" src="${art}" alt="">` : ''}<div><b>${esc(heading)}</b><p>${esc(text)}</p></div></div>`).join('');
 }
 document.querySelector('#helpButton').onclick = () => { guide('flow'); dialog.showModal(); };
 document.querySelector('#rulesLink').onclick = () => { guide('flow'); dialog.showModal(); };

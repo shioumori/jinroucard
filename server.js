@@ -13,7 +13,10 @@ const {
 const ROOT = __dirname;
 const PORT = Number(process.env.PORT || 8080);
 const rooms = new Map();
-const PUBLIC_FILES = new Set(['index.html', 'styles.css', 'app.js']);
+const PUBLIC_FILES = new Set([
+  'index.html', 'styles.css', 'app.js', 'assets/werewolf.png', 'assets/villager.png', 'assets/night-village.png', 'assets/day-village.png',
+  ...ROLES.map(item => `assets/roles/${item.id}.png`), ...CARDS.map(item => `assets/cards/${item.id}.png`)
+]);
 const TYPES = {
   '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8',
