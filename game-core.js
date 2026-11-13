@@ -126,12 +126,14 @@ function resolveNight(room) {
       const beforeTarget = room.grave[graveIndex];
       room.grave[graveIndex] = beforeActor;
       player.role = beforeTarget;
+      player.nightInfo = { kind: 'vampire', targetName: `墓場 ${graveIndex + 1}枚目`, beforeRole: beforeActor, receivedRole: beforeTarget };
       room.actionLog.push({ kind: '交換', actorId: player.id, actorRole: 'vampire', targetId: 'grave', graveIndex, beforeRole: beforeTarget, afterRole: beforeActor, actorAfterRole: player.role });
     } else {
       const target = playerById(room, action.targetId);
       const beforeTarget = target.role;
       target.role = beforeActor;
       player.role = beforeTarget;
+      player.nightInfo = { kind: 'vampire', targetName: target.name, beforeRole: beforeActor, receivedRole: beforeTarget };
       room.actionLog.push({ kind: '交換', actorId: player.id, actorRole: 'vampire', targetId: target.id, beforeRole: beforeTarget, afterRole: beforeActor, actorAfterRole: player.role });
     }
   }
@@ -186,8 +188,12 @@ function resolveCardSubmissions(room, below = randomInt) {
       player.cardInfo = { kind: '調査団', targetId: activeWolf?.id || null, text: activeWolf ? `現在の人狼は${activeWolf.name}です。` : '現在、人狼はいません。' };
     } else if (submission.cardId === 'reveal') {
       const wasWolf = WOLF_ROLES.has(player.originalRole);
-      player.cardInfo = { kind: '自己開示', text: wasWolf ? '元の役職が人狼・大狼だったため証明できません。' : '元の役職は人狼・大狼ではありません。' };
-      if (!wasWolf) room.cardResults.push({ kind: '自己開示', text: `${player.name}は元の役職が人狼・大狼ではないと証明しました。` });
+      if (wasWolf) {
+        player.cardInfo = { kind: '自己開示', text: '元の役職が人狼・大狼のため、このカードは使用できません。' };
+        continue;
+      }
+      player.cardInfo = { kind: '自己開示', text: '元の役職は人狼・大狼ではありません。' };
+      room.cardResults.push({ kind: '自己開示', text: `${player.name}は元の役職が人狼・大狼ではないと証明しました。` });
     }
   }
 }

@@ -82,6 +82,7 @@ function publicState(room, viewer) {
   const everyoneReady = room.ready.size;
   const data = {
     code: room.code, phase: room.phase, round: room.round, count: room.count,
+    discussionSeconds: room.discussionSeconds, phaseEndsAt: room.phaseEndsAt || null,
     roleCounts: room.roleCounts, players: room.players.map(player => ({
       id: player.id, name: player.name, online: player.online, isHost: player.host,
       ready: room.ready.has(player.id), submitted: player.cardSubmitted,
@@ -126,6 +127,7 @@ function publicState(room, viewer) {
     grave: viewer.originalRole === 'bigwolf' && !ending ? room.grave : undefined,
     hand: viewer.hand,
     nightInfo: viewer.nightInfo,
+    ownActions: room.actionLog.filter(row => row.actorId === viewer.id).map(row => ({ ...row })),
     cardInfo: viewer.cardInfo,
     submittedCardId: ownSubmission?.cardId || null,
     submittedCardTargetId: ownSubmission?.targetId || null,
@@ -200,6 +202,7 @@ function joinRoom(body) {
 }
 
 function resetRound(room) {
+  clearPhaseTimer(room);
   room.ready.clear(); room.nightActions.clear(); room.submissions.clear(); room.votes.clear();
   room.cardResults = []; room.publicCards = []; room.actionLog = []; room.outcome = null; room.cardModifiers = null;
   room.messages = [];
@@ -214,16 +217,39 @@ function allReady(room) {
   return room.ready.size === room.players.length;
 }
 
+function clearPhaseTimer(room) {
+  if (room.phaseTimer) clearTimeout(room.phaseTimer);
+  room.phaseTimer = null;
+  room.phaseEndsAt = null;
+}
+
+function startDiscussionTimer(room, phase) {
+  clearPhaseTimer(room);
+  const seconds = room.discussionSeconds?.[phase] || 0;
+  if (!seconds) return;
+  room.phaseEndsAt = Date.now() + seconds * 1000;
+  room.phaseTimer = setTimeout(() => {
+    if (room.phase !== phase) return;
+    room.ready.clear();
+    room.phase = phase === 'morning' ? 'cards' : 'vote';
+    clearPhaseTimer(room);
+    broadcast(room);
+  }, seconds * 1000);
+}
+
 function advanceReadyPhase(room, player) {
   if (room.ready.has(player.id)) return;
   room.ready.add(player.id);
   if (!allReady(room)) return;
   room.ready.clear();
-  if (room.phase === 'role') room.phase = 'night';
-  else if (room.phase === 'dealing') room.phase = 'morning';
-  else if (room.phase === 'morning') room.phase = 'cards';
-  else if (room.phase === 'results') room.phase = 'lastTalk';
-  else if (room.phase === 'lastTalk') room.phase = 'vote';
+  const previous = room.phase;
+  clearPhaseTimer(room);
+  if (previous === 'role') room.phase = 'night';
+  else if (previous === 'dealing') room.phase = 'morning';
+  else if (previous === 'morning') room.phase = 'cards';
+  else if (previous === 'results') room.phase = 'lastTalk';
+  else if (previous === 'lastTalk') room.phase = 'vote';
+  if (['morning', 'lastTalk'].includes(room.phase)) startDiscussionTimer(room, room.phase);
 }
 
 function validateNightChoice(room, player, choice) {
@@ -241,6 +267,7 @@ function submitCard(room, player, body) {
   if (player.cardSubmitted) throw new Error('カードは提出済みです。');
   const card = player.hand.find(item => item.id === body.cardId);
   if (!card) throw new Error('手札からカードを選んでください。');
+  if (card.id === 'reveal' && ['wolf', 'bigwolf'].includes(player.originalRole)) throw new Error('人狼・大狼は自己開示を使用できません。');
   let targetId = null;
   if (['researcher', 'ballot'].includes(card.id)) {
     const target = room.players.find(item => item.id === body.targetId);
@@ -289,6 +316,15 @@ function applyAction(room, player, body) {
       if (room.players.length > body.count) throw new Error('参加人数より少ない人数には変更できません。');
       room.count = body.count;
       room.roleCounts = Object.fromEntries(ROLES.map(role => [role.id, body.roleCounts[role.id] || 0]));
+      const discussionSeconds = body.discussionSeconds || {};
+      for (const phase of ['morning', 'lastTalk']) {
+        const seconds = Number(discussionSeconds[phase] ?? room.discussionSeconds?.[phase] ?? 120);
+        if (!Number.isInteger(seconds) || seconds < 30 || seconds > 600 || seconds % 30 !== 0) throw new Error('会議時間は30秒〜10分、30秒刻みで設定してください。');
+      }
+      room.discussionSeconds = {
+        morning: Number(discussionSeconds.morning ?? room.discussionSeconds?.morning ?? 120),
+        lastTalk: Number(discussionSeconds.lastTalk ?? room.discussionSeconds?.lastTalk ?? 120)
+      };
       return;
     }
     case 'ready': {
@@ -346,7 +382,7 @@ async function handle(req, res) {
         const room = {
           code, count: body.count, roleCounts: Object.fromEntries(ROLES.map(role => [role.id, body.roleCounts[role.id] || 0])),
           players: [], scores: new Map(), phase: 'lobby', round: 0, ready: new Set(),
-          nightActions: new Map(), submissions: new Map(), votes: new Map(), actionLog: [], cardResults: [], publicCards: [], messages: [], createdAt: Date.now(), lastActivity: Date.now()
+          nightActions: new Map(), submissions: new Map(), votes: new Map(), actionLog: [], cardResults: [], publicCards: [], messages: [], discussionSeconds: { morning: 120, lastTalk: 120 }, phaseTimer: null, phaseEndsAt: null, createdAt: Date.now(), lastActivity: Date.now()
         };
         const player = newPlayer(body.name, true);
         room.players.push(player); room.scores.set(player.id, 0); rooms.set(code, room);

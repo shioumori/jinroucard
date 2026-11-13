@@ -25,7 +25,7 @@ const DEFAULT_COUNTS = { villager: 3, wolf: 1, bigwolf: 0, madman: 1, seer: 1, m
 const state = {
   page: 'home', name: '', room: null, token: '', code: '', stream: null, error: '',
   count: 5, roleCounts: { ...DEFAULT_COUNTS }, draftCounts: null, draftCount: 5,
-  draftRoomCode: '', pendingTarget: null, pendingCard: null, error: ''
+  draftRoomCode: '', draftDiscussion: { morning: 120, lastTalk: 120 }, pendingTarget: null, pendingCard: null, error: ''
 };
 const app = document.querySelector('#app');
 const dialog = document.querySelector('#rulesDialog');
@@ -194,8 +194,32 @@ function phaseHeader(room) {
   const sequence = [{ label: '役職確認', icon: '🎭' }, { label: '夜の行動', icon: '☾' }, { label: '朝の会議', icon: '☼' }, { label: 'カード提出', icon: '▤' }, { label: '最後の会議', icon: '♛' }];
   const index = ({ role: 0, night: 1, dealing: 1, morning: 2, cards: 3, results: 4, lastTalk: 4, vote: 4, ending: 4 })[room.phase] ?? 0;
   const steps = room.phase === 'lobby' ? '' : `<nav class="phase-steps" aria-label="ゲームの進行">${sequence.map((step, i) => `<div class="phase-step ${i < index ? 'done' : i === index ? 'active' : ''}" ${i === index ? 'aria-current="step"' : ''}><span>${step.icon}</span><b>${step.label}</b></div>`).join('')}</nav>`;
-  return `<div class="game-top"><span class="phase-pill">${phaseTitle(room.phase)}</span><span class="timer">${room.round ? `${room.round}試合目` : '部屋コード：' + esc(room.code)}</span></div>${steps}`;
+  const deadline = ['morning', 'lastTalk'].includes(room.phase) && room.phaseEndsAt ? `<span class="timer" id="phaseTimer" data-deadline="${room.phaseEndsAt}"></span>` : '';
+  return `<div class="game-top"><span class="phase-pill">${phaseTitle(room.phase)}</span>${deadline}<span class="timer">${room.round ? `${room.round}試合目` : '部屋コード：' + esc(room.code)}</span></div>${steps}${room.phase !== 'lobby' ? personalRecord(room) : ''}`;
 }
+function personalRecord(room) {
+  const self = room.private;
+  const ownRole = self.role ? `${role(self.role).name}${self.originalRole !== self.role ? `（元：${role(self.originalRole).name}）` : ''}` : '未配布';
+  const actions = (self.ownActions || []).map(row => {
+    const target = row.targetId === 'grave' ? `墓場 ${Number(row.graveIndex) + 1}枚目` : room.players.find(p => p.id === row.targetId)?.name || '不明';
+    if (row.kind === '占い') return `占い：${target} は ${role(row.beforeRole).name}`;
+    if (row.kind === '交換') return `吸血鬼：${target}と交換。相手の役職 ${role(row.beforeRole).name}、交換後の自分 ${role(row.actorAfterRole).name}`;
+    if (row.kind === '治療') return `医者：${target}を治療（${role(row.beforeRole).name} → 村人）`;
+    if (row.kind === '休診') return '医者：休診';
+    return row.kind;
+  });
+  if (self.nightInfo?.kind === 'seer' && !actions.some(text => text.startsWith('占い：'))) actions.push(`占い：${self.nightInfo.targetName} は ${role(self.nightInfo.role).name}`);
+  const hand = (self.hand || []).map(item => `${item.name}${item.id === self.submittedCardId ? '（提出済み）' : ''}`).join('、') || 'まだ配られていません';
+  const submitted = self.submittedCardId ? `${card(self.submittedCardId).name}${self.submittedCardTargetId ? `（対象：${esc(room.players.find(p => p.id === self.submittedCardTargetId)?.name || '不明')}）` : ''}` : '未提出';
+  const cardResult = self.cardInfo ? `<div>${esc(self.cardInfo.text)}</div>` : '';
+  return `<details class="panel personal-record"><summary>自分の記録を確認</summary><div class="record-content"><div><b>現在の役職</b>：${esc(ownRole)}</div><div><b>自分の手札</b>：${esc(hand)}</div><div><b>提出カード</b>：${esc(submitted)}</div><b>自分の夜の行動</b>${actions.length ? `<ul>${actions.map(item => `<li>${esc(item)}</li>`).join('')}</ul>` : '<div>記録された行動はありません。</div>'}${cardResult}</div></details>`;
+}
+setInterval(() => {
+  const timer = document.querySelector('#phaseTimer');
+  if (!timer) return;
+  const seconds = Math.max(0, Math.ceil((Number(timer.dataset.deadline) - Date.now()) / 1000));
+  timer.textContent = `残り ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+}, 500);
 function playerList(room) {
   return `<div class="player-list">${room.players.map(player => `<div class="player-item"><span class="avatar">${esc(player.name.slice(0, 1))}</span>${esc(player.name)}${player.isHost ? '<em>ホスト</em>' : ''}<em>${player.online ? (player.ready ? '準備OK' : 'オンライン') : '再接続待ち'}</em></div>`).join('')}</div>`;
 }
@@ -215,14 +239,22 @@ function renderLobbyOnline() {
       state.draftRoomCode = room.code;
       state.draftCounts = { ...room.roleCounts };
       state.draftCount = room.count;
+      state.draftDiscussion = { ...(room.discussionSeconds || { morning: 120, lastTalk: 120 }) };
     }
   }
-  const settings = self.isHost ? `<div class="panel"><div class="panel-title">ホスト設定 <small>${total(state.draftCounts || room.roleCounts)} / ${(state.draftCount || room.count) + 2} 枚</small></div><div class="segmented">${[3,4,5,6,7,8].map(n => `<button data-count="${n}" class="${(state.draftCount || room.count) === n ? 'active' : ''}">${n}人</button>`).join('')}</div><div class="role-list">${roleRows(state.draftCounts || room.roleCounts, state.draftCount || room.count, true)}</div><button class="button button-secondary" id="saveSettings" style="width:100%;margin-top:12px">設定を更新</button></div>` : onlinePanel('役職設定', `<div class="role-list">${roleRows(room.roleCounts, room.count, false)}</div>`, `${total(room.roleCounts)}枚`);
+  const durationOptions = (selected) => [30,60,90,120,180,300,600].map(n => `<option value="${n}" ${Number(selected) === n ? 'selected' : ''}>${n < 60 ? `${n}秒` : `${n / 60}分${n % 60 ? '30秒' : ''}`}</option>`).join('');
+  const discussionSettings = self.isHost
+    ? `<div class="field"><label for="morningTime">朝の会議時間</label><select class="input" id="morningTime">${durationOptions(state.draftDiscussion.morning)}</select></div><div class="field"><label for="lastTalkTime">最後の会議時間</label><select class="input" id="lastTalkTime">${durationOptions(state.draftDiscussion.lastTalk)}</select></div>`
+    : `<p class="total-note">会議時間：朝 ${room.discussionSeconds?.morning || 120}秒 ／ 最後 ${room.discussionSeconds?.lastTalk || 120}秒</p>`;
+  const settings = self.isHost ? `<div class="panel"><div class="panel-title">ホスト設定 <small>${total(state.draftCounts || room.roleCounts)} / ${(state.draftCount || room.count) + 2} 枚</small></div><div class="segmented">${[3,4,5,6,7,8].map(n => `<button data-count="${n}" class="${(state.draftCount || room.count) === n ? 'active' : ''}">${n}人</button>`).join('')}</div><div class="role-list">${roleRows(state.draftCounts || room.roleCounts, state.draftCount || room.count, true)}</div>${discussionSettings}<button class="button button-secondary" id="saveSettings" style="width:100%;margin-top:12px">設定を更新</button></div>` : onlinePanel('役職設定', `<div class="role-list">${roleRows(room.roleCounts, room.count, false)}</div>${discussionSettings}`, `${total(room.roleCounts)}枚`);
   app.innerHTML = `${phaseHeader(room)}<div class="page-head"><span class="eyebrow">ROOM ${esc(room.code)}</span><h1>${self.isHost ? '部屋をつくりました' : '部屋に参加しました'}</h1><p>部屋コードを共有してプレイヤーを招待してください。</p></div>${onlinePanel('部屋コード', `<div class="lobby-code">${esc(room.code)}</div><button class="button button-secondary" id="copyCode" style="width:100%">コードをコピー</button>`)}${onlinePanel('プレイヤー', playerList(room), `${room.players.length} / ${room.count}人`)}${settings}<div class="callout">全員が接続し、役職合計が参加人数＋2枚になると開始できます。${room.players.length < room.count ? ` あと${room.count - room.players.length}人です。` : ''}</div>${self.isHost ? `<div class="phase-actions"><button class="button button-primary" id="startGame" ${room.players.length === room.count && room.players.every(p => p.online) && total(room.roleCounts) === room.count + 2 ? '' : 'disabled'}>ゲームを始める →</button></div>` : `<div class="empty">ホストがゲームを開始するのを待っています。</div>`}`;
   document.querySelector('#copyCode').onclick = async () => { try { await navigator.clipboard.writeText(room.code); showToast('部屋コードをコピーしました。'); } catch { showToast(room.code); } };
   if (self.isHost) {
     bindSetup(state.draftCounts, state.draftCount, renderOnline);
-    document.querySelector('#saveSettings').onclick = () => send('settings', { count: state.draftCount, roleCounts: state.draftCounts });
+    document.querySelector('#saveSettings').onclick = () => {
+      state.draftDiscussion = { morning: Number(document.querySelector('#morningTime').value), lastTalk: Number(document.querySelector('#lastTalkTime').value) };
+      send('settings', { count: state.draftCount, roleCounts: state.draftCounts, discussionSeconds: state.draftDiscussion });
+    };
     document.querySelector('#startGame').onclick = () => send('start');
   }
 }
@@ -259,7 +291,7 @@ function renderNightOnline() {
 }
 function renderDealingOnline() {
   const room = state.room, self = room.private;
-  const nightInfo = self.nightInfo ? `<div class="callout">夜の結果：${esc(self.nightInfo.targetName)}の役職は「${role(self.nightInfo.role).name}」です。</div>` : '';
+  const nightInfo = self.nightInfo?.kind === 'seer' ? `<div class="callout">占い結果：${esc(self.nightInfo.targetName)}の役職は「${role(self.nightInfo.role).name}」です。</div>` : self.nightInfo?.kind === 'vampire' ? `<div class="callout">交換結果：${esc(self.nightInfo.targetName)}と役職を交換しました。あなたは「${role(self.nightInfo.receivedRole).name}」です。</div>` : '';
   const hand = (self.hand || []).map(item => `<div class="playing-card"><img class="card-art" src="${cardArtwork(item.id)}" alt=""><b>${item.name}</b><small>${item.desc}</small></div>`).join('');
   app.innerHTML = `${phaseHeader(room)}<section class="phase-card"><span class="eyebrow">PRIVATE CARD HAND</span><h1>カードが配られました</h1><p>各プレイヤーに3枚ずつ配られます。手札は本人だけに表示されます。</p></section>${nightInfo}<div class="hand">${hand}</div><div class="callout">カードを確認したら次へ進みます。朝の会議後に1枚提出します。</div><div class="phase-actions">${readyButton('手札を確認した →')}</div>`;
   wireReady();
@@ -275,7 +307,10 @@ function renderCardsOnline() {
   const room = state.room, self = room.private, submitted = self.ownCardSubmitted;
   const selected = (self.hand || []).find(item => item.id === state.pendingCard);
   const targets = needsTarget(selected?.id) ? `<div class="label">カードの対象を選ぶ</div>${targetButtons(room.players, state.pendingTarget)}` : '';
-  const hand = (self.hand || []).map(item => `<button class="playing-card ${state.pendingCard === item.id ? 'selected' : ''}" data-card="${item.id}"><img class="card-art" src="${cardArtwork(item.id)}" alt=""><b>${item.name}</b><small>${item.desc}</small>${state.pendingCard === item.id ? '<span class="card-mark">✓</span>' : ''}</button>`).join('');
+  const hand = (self.hand || []).map(item => {
+    const unusableReveal = item.id === 'reveal' && ['wolf', 'bigwolf'].includes(self.originalRole);
+    return `<button class="playing-card ${state.pendingCard === item.id ? 'selected' : ''}" data-card="${item.id}" ${unusableReveal ? 'disabled' : ''}><img class="card-art" src="${cardArtwork(item.id)}" alt=""><b>${item.name}</b><small>${unusableReveal ? '人狼・大狼は使用できません。' : item.desc}</small>${state.pendingCard === item.id ? '<span class="card-mark">✓</span>' : ''}</button>`;
+  }).join('');
   app.innerHTML = `${phaseHeader(room)}<section class="phase-card"><span class="eyebrow">PLAY ONE CARD</span><h1>使うカードを選ぶ</h1><p>各プレイヤーの提出カードは、全員が出し終えるまで分かりません。</p></section>${submitted ? `<div class="callout">提出済みです。残り${room.players.length - room.cardSubmittedCount}人の提出を待っています。</div>` : `<div class="hand">${hand}</div>${targets}<button class="button button-primary" id="submitCard" ${selected && (!needsTarget(selected.id) || state.pendingTarget) ? '' : 'disabled'}>このカードを提出する →</button>`}`;
   document.querySelectorAll('[data-card]').forEach(button => button.onclick = () => { state.pendingCard = button.dataset.card; state.pendingTarget = null; renderCardsOnline(); });
   document.querySelectorAll('[data-target]').forEach(button => button.onclick = () => { state.pendingTarget = button.dataset.target; renderCardsOnline(); });
@@ -291,7 +326,9 @@ function renderResultsOnline() {
 }
 function renderLastTalkOnline() {
   const room = state.room;
-  app.innerHTML = `${phaseHeader(room)}<section class="phase-card"><span class="eyebrow">FINAL DISCUSSION</span><h1>最後の会議</h1><p>匿名で公開されたカードの情報を使って、投票先を決めましょう。</p></section><div class="callout">村長は2票、選挙権は指定した相手に1票を加えます。全員が確認すると最終投票へ進みます。</div>${chatPanel(room)}<div class="phase-actions">${readyButton('投票へ進む →')}</div>`;
+  const exposed = (room.publicCards || []).map(item => `<div class="result-card"><img class="result-card-art" src="${cardArtwork(item.cardId)}" alt=""><b>${card(item.cardId).name}</b><span>${item.targetId ? `対象：${esc(room.players.find(p => p.id === item.targetId)?.name || '不明')}` : '提出済み'}</span></div>`).join('');
+  const reports = (room.cardResults || []).map(item => `<div class="result-card"><b>${esc(item.kind)}</b><span>${esc(item.text)}</span></div>`).join('');
+  app.innerHTML = `${phaseHeader(room)}<section class="phase-card"><span class="eyebrow">FINAL DISCUSSION</span><h1>最後の会議</h1><p>匿名で公開されたカードの情報を使って、投票先を決めましょう。</p></section><div class="callout">村長は2票、選挙権は指定した相手に1票を加えます。全員が確認すると最終投票へ進みます。</div>${onlinePanel('匿名で出されたカード', exposed)}${reports ? onlinePanel('カードの効果', reports) : ''}${chatPanel(room)}<div class="phase-actions">${readyButton('投票へ進む →')}</div>`;
   wireChat();
   wireReady();
 }
