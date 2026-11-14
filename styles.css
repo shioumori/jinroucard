@@ -143,3 +143,76 @@ body{background:radial-gradient(ellipse at 50% 17%,#263f74 0,transparent 44%),li
 .toast{background:linear-gradient(180deg,#ffe687,#f3a72f);border:1px solid #fff0a0;box-shadow:0 4px 0 #793e33}
 .alert{background:#501e37;border-color:#ed776f;color:#ffe1d1}
 @media(max-width:390px){.app-shell{padding-left:11px;padding-right:11px}.main-content{padding-top:12px}.phase-steps{gap:2px;padding:4px}.phase-step{min-height:47px}.phase-step b{font-size:7px}.seat-portrait,.seat-symbol{width:36px;height:36px}.seat{min-height:83px}}
+
+/* Compact portrait-first play layout. */
+.room-code-small,.round-small{color:#e6d4ad;font-size:9px;letter-spacing:.06em;padding:3px 7px;border:1px solid #9e753d;border-radius:7px;background:#081b35}
+.game-top{margin-bottom:5px;min-height:22px}
+.lobby-code{font-size:21px;padding:8px 0 3px;letter-spacing:.12em}
+.personal-record{margin:2px 0 7px;padding:7px 10px;border-radius:9px;background:linear-gradient(145deg,#0e2848,#08182f);border-color:#886437}
+.personal-record summary{font-size:10px;color:#f8dc96}
+.personal-record[open] .record-content{max-height:150px;overflow:auto}
+.lobby-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:4px 0 10px}
+.lobby-heading h1{font-size:18px;margin:0;color:#fff0c8}
+.lobby-heading .button{min-height:34px;padding:0 10px;font-size:10px}
+.compact-role-showcase{display:grid;grid-template-columns:minmax(112px,35%) 1fr;align-items:center;gap:5px;padding:8px 12px;text-align:left;min-height:0}
+.compact-role-showcase .role-portrait{width:100%;height:152px;margin:0;object-fit:contain}
+.role-main{min-width:0;text-align:left}
+.role-main>small,.morning-role small{color:#f6d891;font-size:10px}
+.role-main h1{margin:3px 0;font-size:22px;color:#fff1c9}
+.role-main p{font-size:10px;line-height:1.45;margin:2px 0 6px}
+.team-tag{display:inline-block;padding:3px 7px;border:1px solid #c3974b;border-radius:6px;background:#0a1932;color:#ffe4a0;font-size:9px}
+.role-side-info,.grave-portraits{margin:5px 0;padding:6px 8px;border:1px solid #a67a3f;border-radius:9px;background:linear-gradient(145deg,#0c2646,#081931)}
+.role-side-info>small,.grave-portraits>small{color:#ffdf92;font-size:9px}
+.role-side-info>div{display:inline-flex;align-items:center;gap:5px;margin:4px 5px 0 0;padding:3px 6px;border-radius:7px;background:#ffffff0b;font-size:9px}
+.role-side-info img,.grave-portraits img{width:32px;height:32px;object-fit:cover;object-position:center;border-radius:6px;border:1px solid #ddaf58}
+.role-side-info span{color:#e3d1ad;font-size:8px}
+.grave-portraits>div{display:inline-flex;flex-direction:column;align-items:center;gap:2px;margin:3px 7px 0 0;font-size:8px;color:#f9e6bd}
+.night-result{display:flex;align-items:center;gap:9px;margin:5px 0;padding:7px 9px;border:1px solid #dfad50;border-radius:10px;background:linear-gradient(110deg,#112f54,#091a34);box-shadow:inset 0 1px #fff2,0 3px 0 #34243b}
+.night-result>small{flex:0 0 auto;max-width:52px;color:#ffdc89;font-size:9px;line-height:1.25}
+.night-result>img{width:48px;height:48px;flex:0 0 48px;object-fit:cover;object-position:center;border:1px solid #edc46a;border-radius:8px;background:#172747}
+.night-result>div{display:grid;gap:2px;min-width:0}
+.night-result b{font-size:11px;color:#fff0c4;overflow-wrap:anywhere}
+.night-result span{font-size:9px;color:#ead9b6;line-height:1.3}
+.night-result.private-result{border-color:#f1c35c;background:linear-gradient(110deg,#392648,#0c1c37)}
+.unknown-role-art{display:grid;place-items:center;width:48px;height:48px;flex:0 0 48px;border-radius:8px;background:#101c37;color:#ffd974;font-size:24px}
+.morning-focus{margin:6px 0;padding:8px;border:1px solid #dfad50;border-radius:11px;background:linear-gradient(145deg,#0f2b4e,#091a33);box-shadow:inset 0 1px #fff2,0 4px 0 #34243a}
+.morning-role{display:flex;align-items:center;gap:8px;min-width:0}
+.morning-role>img{width:51px;height:54px;flex:0 0 51px;object-fit:cover;object-position:center;border:1px solid #edc56b;border-radius:8px;background:#152748}
+.morning-role>div{display:grid;gap:2px;min-width:0}
+.morning-role b{font-size:15px;color:#fff0c6}
+.morning-role span{font-size:8px;color:#e4d3af}
+.morning-caption{margin-left:auto;color:#ffdf90;font-size:10px;white-space:nowrap}
+.morning-focus .night-result{margin:5px 0 0;padding:5px 7px;background:#0b203c}
+.morning-focus .night-result>img{width:38px;height:38px;flex-basis:38px}
+.morning-focus .night-result>small{max-width:42px;font-size:8px}
+.hand-strip{margin-top:5px}
+.hand-strip>small{display:block;margin-bottom:3px;color:#ffdf91;font-size:8px}
+.hand-strip>div{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+.hand-chip{display:flex;align-items:center;gap:5px;min-width:0;padding:4px 5px;border:1px solid #9d753e;border-radius:7px;background:linear-gradient(145deg,#183357,#0a1d38)}
+.hand-chip img{width:30px;height:32px;flex:0 0 30px;object-fit:cover;border:1px solid #e9c76e;border-radius:5px}
+.hand-chip b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#ffebbd;font-size:8px}
+.hand-strip.compact{margin-top:0}
+.hand-heading{padding:8px 11px;margin:5px 0}
+.hand-heading h1{font-size:16px;margin:0 0 2px}
+.hand-heading p{font-size:9px;margin:0}
+.claim-form{gap:5px}
+.claim-form>label{margin-top:3px}
+.claim-result[hidden],[hidden]{display:none!important}
+.claim-result-art{display:flex;align-items:center;gap:6px}
+.claim-result-art img{width:28px;height:30px;object-fit:cover;border-radius:5px}
+.role-mini{border-radius:7px;object-fit:cover;object-position:center}
+.seat-portrait,.claim-speaker{object-position:center}
+.claim-speaker{border-radius:50%;width:28px;height:28px;object-fit:cover;border:1px solid #e3b654;background:#13264a}
+.claim-row{min-height:40px}
+.claim-list{max-height:82px}
+.chat-log{max-height:70px}
+.chat-form .input,.chat-form .button{height:38px;min-height:38px}
+.phase-actions{margin-top:7px}
+.phase-actions .button{min-height:42px}
+.player-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+.player-item{display:grid;grid-template-columns:25px minmax(0,1fr) auto;column-gap:5px;row-gap:1px;min-height:38px;padding:4px 5px}
+.avatar.portrait-avatar{grid-row:1/3;width:24px;height:24px}
+.player-name{font-size:9px}
+.player-item em{font-size:7px}
+.night-result img,.morning-role>img,.hand-chip img,.role-mini,.seat-portrait,.claim-speaker,.guide-art{object-fit:cover}
+@media(max-width:390px){.compact-role-showcase{grid-template-columns:104px 1fr;padding:7px 9px}.compact-role-showcase .role-portrait{height:133px}.role-main h1{font-size:19px}.morning-focus{padding:6px}.morning-role>img{width:43px;height:46px;flex-basis:43px}.morning-caption{font-size:9px}.hand-chip{gap:3px;padding:3px}.hand-chip img{width:27px;height:29px;flex-basis:27px}.hand-chip b{font-size:7px}.personal-record summary{font-size:9px}}

@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createServer } = require('../server');
+const { createServer, rooms } = require('../server');
 
 class StateStream {
   constructor(response) {
@@ -93,9 +93,7 @@ test('HTTP/SSE multiplayer flow keeps private roles and hands isolated through t
   assert.equal(roleStates.every(value => value.private.role), true);
   assert.equal(roleStates.every(value => value.players.every(player => !Object.hasOwn(player, 'role'))), true, 'live public player list must not expose roles');
 
-  for (const value of roleStates) await post('/api/action', { code: host.code, token: value.private.token, action: 'ready' });
-  const nightStates = await Promise.all(streams.map(stream => stream.waitFor(value => value.phase === 'night')));
-  const actions = nightStates.map(value => {
+  const actions = roleStates.map(value => {
     const role = value.private.role;
     const other = value.players.find(player => player.id !== value.private.playerId);
     if (role === 'seer') return { type: 'seer', targetId: other.id };
@@ -103,7 +101,7 @@ test('HTTP/SSE multiplayer flow keeps private roles and hands isolated through t
     if (role === 'vampire') return { type: 'vampire', targetId: 'grave' };
     return { type: 'pass' };
   });
-  for (let i = 0; i < nightStates.length; i++) await post('/api/action', { code: host.code, token: nightStates[i].private.token, action: 'night', choice: actions[i] });
+  for (let i = 0; i < roleStates.length; i++) await post('/api/action', { code: host.code, token: roleStates[i].private.token, action: 'night', choice: actions[i] });
   const dealingStates = await Promise.all(streams.map(stream => stream.waitFor(value => value.phase === 'dealing')));
   for (const value of dealingStates) {
     assert.equal(value.private.hand.length, 3);
@@ -142,4 +140,19 @@ test('HTTP/SSE multiplayer flow keeps private roles and hands isolated through t
   assert.equal(endings.every(value => value.outcome.report.length === 3), true);
   assert.equal(endings.every(value => value.outcome.report.every(row => row.cardId && row.voteTargetId)), true);
   assert.equal(endings.every(value => Array.isArray(value.outcome.grave) && value.outcome.grave.length === 2), true);
+});
+
+test('a host can leave a mistaken lobby and return to the start screen', async t => {
+  const server = createServer();
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(async () => new Promise(resolve => server.close(resolve)));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const roleCounts = { villager: 3, wolf: 1, bigwolf: 0, madman: 1, seer: 1, mayor: 0, vampire: 0, doctor: 0, teruteru: 0 };
+  const code = `leave-${Date.now()}`;
+  const created = await fetch(`${base}/api/create`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: 'ホスト', code, count: 4, roleCounts }) });
+  const session = await created.json();
+  assert.equal(created.status, 201);
+  const left = await fetch(`${base}/api/action`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code, token: session.token, action: 'leave' }) });
+  assert.equal(left.status, 200);
+  assert.equal(rooms.has(code), false);
 });

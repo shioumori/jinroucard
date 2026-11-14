@@ -127,6 +127,19 @@ test('Researcher reveals the selected player’s role from before night actions'
   assert.match(reveal.text, /夜の行動前/);
 });
 
+test('Scout gives the submitter a private illustrated-role target result', () => {
+  const room = makeRoom({});
+  room.players.forEach((player, i) => { player.role = ['seer', 'wolf', 'villager', 'doctor', 'mayor'][i]; });
+  room.grave = ['bigwolf', 'teruteru'];
+  room.submissions = new Map([
+    ['p0', { cardId: 'scout' }], ['p1', { cardId: 'selfhelp' }], ['p2', { cardId: 'selfhelp' }],
+    ['p3', { cardId: 'selfhelp' }], ['p4', { cardId: 'selfhelp' }]
+  ]);
+  resolveCardSubmissions(room, noSwap);
+  assert.deepEqual(room.players[0].cardInfo, { kind: '調査団', targetId: 'p1', role: 'wolf', text: '現在の人狼はBです。' });
+  assert.equal(room.publicCards.every(item => !Object.hasOwn(item, 'playerId')), true);
+});
+
 test('Savior needs a strict participant majority and Shadow needs every current wolf-team member', () => {
   const room = makeRoom({});
   room.players.forEach((player, i) => { player.role = ['wolf', 'bigwolf', 'madman', 'villager', 'villager'][i]; });

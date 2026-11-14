@@ -187,7 +187,7 @@ function resolveCardSubmissions(room, below = randomInt) {
           : '夜にあなたを対象にした能力はありませんでした。'
       };
     } else if (submission.cardId === 'scout') {
-      player.cardInfo = { kind: '調査団', targetId: activeWolf?.id || null, text: activeWolf ? `現在の人狼は${activeWolf.name}です。` : '現在、人狼はいません。' };
+      player.cardInfo = { kind: '調査団', targetId: activeWolf?.id || null, role: activeWolf?.role || null, text: activeWolf ? `現在の人狼は${activeWolf.name}です。` : '現在、人狼はいません。' };
     } else if (submission.cardId === 'reveal') {
       const wasWolf = WOLF_ROLES.has(player.originalRole);
       if (wasWolf) {

@@ -15,6 +15,7 @@ const PORT = Number(process.env.PORT || 8080);
 const rooms = new Map();
 const PUBLIC_FILES = new Set([
   'index.html', 'styles.css', 'app.js', 'assets/werewolf.png', 'assets/villager.png', 'assets/night-village.png', 'assets/day-village.png',
+  ...['seer', 'vampire', 'doctor', 'teruteru', 'bigwolf', 'madman', 'mayor', 'monk', 'researcher', 'scout'].map(id => `assets/character-art/${id}.png`),
   ...ROLES.map(item => `assets/roles/${item.id}.png`), ...CARDS.map(item => `assets/cards/${item.id}.png`)
 ]);
 const TYPES = {
@@ -296,8 +297,7 @@ function advanceReadyPhase(room, player) {
   room.ready.clear();
   const previous = room.phase;
   clearPhaseTimer(room);
-  if (previous === 'role') room.phase = 'night';
-  else if (previous === 'dealing') room.phase = 'morning';
+  if (previous === 'dealing') room.phase = 'morning';
   else if (previous === 'morning') room.phase = 'cards';
   else if (previous === 'results') room.phase = 'lastTalk';
   else if (previous === 'lastTalk') room.phase = 'vote';
@@ -366,8 +366,9 @@ function applyAction(room, player, body) {
     const { claimType, roleId, targetId, resultRoleId } = body;
     if (!['role', 'seer', 'vampire', 'doctor', 'grave'].includes(claimType)) throw new Error('表明の種類を選んでください。');
     if (!ROLE_BY_ID.has(roleId)) throw new Error('役職を選んでください。');
+    if (targetId && !room.players.some(item => item.id === targetId)) throw new Error('対象プレイヤーを選んでください。');
     if (['seer', 'vampire', 'doctor'].includes(claimType) && !room.players.some(item => item.id === targetId)) throw new Error('相手プレイヤーを選んでください。');
-    if (claimType === 'vampire' && !ROLE_BY_ID.has(resultRoleId)) throw new Error('交換後の役職を選んでください。');
+    if ((claimType === 'vampire' || (claimType === 'role' && targetId)) && !ROLE_BY_ID.has(resultRoleId)) throw new Error('相手の役職を選んでください。');
     room.claims.push({ playerId: player.id, claimType, roleId, targetId: targetId || null, resultRoleId: resultRoleId || null, phase: room.phase, round: room.round, at: Date.now() });
     return;
   }
@@ -397,12 +398,12 @@ function applyAction(room, player, body) {
       return;
     }
     case 'ready': {
-      if (!['role', 'dealing', 'morning', 'results', 'lastTalk'].includes(room.phase)) throw new Error('今は確認操作を行えません。');
+      if (!['dealing', 'morning', 'results', 'lastTalk'].includes(room.phase)) throw new Error('今は確認操作を行えません。');
       advanceReadyPhase(room, player);
       return;
     }
     case 'night': {
-      if (room.phase !== 'night' || player.actionSubmitted) throw new Error('夜の行動は送信済みか、受付時間外です。');
+      if (!['role', 'night'].includes(room.phase) || player.actionSubmitted) throw new Error('夜の行動は送信済みか、受付時間外です。');
       const choice = validateNightChoice(room, player, body.choice);
       room.nightActions.set(player.id, choice);
       player.actionSubmitted = true;
@@ -421,6 +422,16 @@ function applyAction(room, player, body) {
       if (room.phase !== 'vote') throw new Error('投票時間ではありません。');
       submitVote(room, player, body.targetId);
       return;
+    case 'leave': {
+      if (room.phase !== 'lobby') throw new Error('部屋から戻れるのはゲーム開始前です。');
+      if (player.host) room.phase = 'closed';
+      else {
+        room.players = room.players.filter(item => item.id !== player.id);
+        room.scores.delete(player.id);
+        ensureHost(room);
+      }
+      return;
+    }
     case 'rematch':
       if (!player.host || room.phase !== 'ending') throw new Error('ホストだけが次の試合を準備できます。');
       resetRound(room);
@@ -466,6 +477,7 @@ async function handle(req, res) {
       if (!room || !player) throw new Error('部屋への参加情報が確認できません。', { cause: 401 });
       applyAction(room, player, body);
       broadcast(room);
+      if (room.phase === 'closed') rooms.delete(room.code);
       return json(res, 200, { ok: true });
     } catch (error) {
       const status = error.cause === 401 ? 401 : 400;
