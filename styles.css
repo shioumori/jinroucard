@@ -215,4 +215,6 @@ body{background:radial-gradient(ellipse at 50% 17%,#263f74 0,transparent 44%),li
 .player-name{font-size:9px}
 .player-item em{font-size:7px}
 .night-result img,.morning-role>img,.hand-chip img,.role-mini,.seat-portrait,.claim-speaker,.guide-art{object-fit:cover}
+.timer{min-width:88px;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap}
+html{scroll-behavior:auto}
 @media(max-width:390px){.compact-role-showcase{grid-template-columns:104px 1fr;padding:7px 9px}.compact-role-showcase .role-portrait{height:133px}.role-main h1{font-size:19px}.morning-focus{padding:6px}.morning-role>img{width:43px;height:46px;flex-basis:43px}.morning-caption{font-size:9px}.hand-chip{gap:3px;padding:3px}.hand-chip img{width:27px;height:29px;flex-basis:27px}.hand-chip b{font-size:7px}.personal-record summary{font-size:9px}}

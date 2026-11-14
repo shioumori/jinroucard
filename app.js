@@ -150,6 +150,9 @@ function openStream(code, token) {
   state.stream = stream;
   stream.addEventListener('state', event => {
     const previousPhase = state.room?.phase;
+    // Replacing the live screen on each room update can move the page on mobile,
+    // especially when the keyboard is open. Keep the viewport anchored.
+    const viewportTop = window.scrollY;
     const chatFocused = document.activeElement?.id === 'chatMessage';
     const chatValue = chatFocused ? document.activeElement.value : '';
     const chatPosition = chatFocused ? document.activeElement.selectionStart : null;
@@ -187,10 +190,11 @@ function openStream(code, token) {
       const input = document.querySelector('#chatMessage');
       if (input) {
         input.value = chatValue;
-        input.focus();
+        input.focus({ preventScroll: true });
         input.setSelectionRange(chatPosition, chatPosition);
       }
     }
+    window.scrollTo({ left: 0, top: viewportTop, behavior: 'instant' });
   });
   stream.onerror = async () => {
     if (state.room) return;
