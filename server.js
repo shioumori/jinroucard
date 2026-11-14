@@ -16,6 +16,7 @@ const rooms = new Map();
 const PUBLIC_FILES = new Set([
   'index.html', 'styles.css', 'app.js', 'assets/werewolf.png', 'assets/villager.png', 'assets/night-village.png', 'assets/day-village.png',
   ...['seer', 'vampire', 'doctor', 'teruteru', 'bigwolf', 'madman', 'mayor', 'monk', 'researcher', 'scout'].map(id => `assets/character-art/${id}.png`),
+  'assets/game-logo.png', ...['village', 'wolves', 'vote', 'submit', 'morning', 'night', 'grave', 'help'].map(id => `assets/icons/${id}.png`),
   ...ROLES.map(item => `assets/roles/${item.id}.png`), ...CARDS.map(item => `assets/cards/${item.id}.png`)
 ]);
 const TYPES = {

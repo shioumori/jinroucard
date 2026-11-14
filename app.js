@@ -56,7 +56,7 @@ function render() {
   renderHome();
 }
 function renderHome() {
-  app.innerHTML = `${state.error ? `<div class="alert">${esc(state.error)}</div>` : ''}<section class="hero"><div class="moon"></div><span class="eyebrow">A ONE NIGHT CARD GAME</span><h1>夜明け前<br><strong>人狼</strong></h1><p>〜カードで紡ぐ、真実の夜〜</p><div class="hero-mascots" aria-hidden="true"><img class="hero-villager" src="./assets/villager.png" alt=""><span class="hero-orb">✦</span><img class="hero-wolf" src="./assets/werewolf.png" alt=""></div><div class="hero-caption">月明かりの村で、物語が始まる</div></section><div class="actions"><button class="button button-primary" id="createRoom">ゲームを始める →</button><button class="button button-secondary" id="joinRoom">部屋に参加する</button></div><div class="feature-row"><div class="feature"><b>🌙 一夜限り</b><span>秘密の役職と<br>最後の投票</span></div><div class="feature"><b>🂡 ひみつの手札</b><span>8種類のカードで<br>流れを変える</span></div><div class="feature"><b>👥 3〜8人</b><span>部屋コードで<br>オンライン対戦</span></div></div><div class="callout" style="margin-top:20px">参加者ごとの秘密情報はサーバーから本人にだけ送信します。</div>`;
+  app.innerHTML = `${state.error ? `<div class="alert">${esc(state.error)}</div>` : ''}<section class="hero"><img class="game-logo" src="./assets/game-logo.png" alt="ワンナイト人狼"><p>〜カードで紡ぐ、真実の夜〜</p><div class="hero-mascots" aria-hidden="true"><img class="hero-villager" src="./assets/villager.png" alt=""><span class="hero-orb">✦</span><img class="hero-wolf" src="./assets/werewolf.png" alt=""></div><div class="hero-caption">月明かりの村で、物語が始まる</div></section><div class="actions"><button class="button button-primary" id="createRoom">ゲームを始める →</button><button class="button button-secondary" id="joinRoom">部屋に参加する</button></div><div class="feature-row"><div class="feature"><b>🌙 一夜限り</b><span>秘密の役職と<br>最後の投票</span></div><div class="feature"><b>🂡 ひみつの手札</b><span>8種類のカードで<br>流れを変える</span></div><div class="feature"><b>👥 3〜8人</b><span>部屋コードで<br>オンライン対戦</span></div></div><div class="callout" style="margin-top:20px">参加者ごとの秘密情報はサーバーから本人にだけ送信します。</div>`;
   document.querySelector('#createRoom').onclick = () => { state.page = 'setup'; state.error = ''; render(); };
   document.querySelector('#joinRoom').onclick = () => { state.page = 'join'; state.error = ''; render(); };
 }
@@ -227,7 +227,7 @@ function phaseHeader(room) {
   const code = room.phase === 'lobby' ? `<span class="room-code-small">部屋 ${esc(room.code)}</span>` : `<span class="round-small">${room.round}試合目</span>`;
   return `<div class="game-top">${code}${deadline}</div>${room.phase !== 'lobby' && room.phase !== 'role' ? personalRecord(room) : ''}`;
 }
-function personalRecord(room) {
+function personalRecord(room, expanded = false) {
   const self = room.private;
   const ownRole = self.role ? `${role(self.role).name}${self.originalRole !== self.role ? `（元：${role(self.originalRole).name}）` : ''}` : '未配布';
   const actions = (self.ownActions || []).map(row => {
@@ -242,7 +242,7 @@ function personalRecord(room) {
   const hand = (self.hand || []).map(item => `${item.name}${item.id === self.submittedCardId ? '（提出済み）' : ''}`).join('、') || 'まだ配られていません';
   const submitted = self.submittedCardId ? `${card(self.submittedCardId).name}${self.submittedCardTargetId ? `（対象：${esc(room.players.find(p => p.id === self.submittedCardTargetId)?.name || '不明')}）` : ''}` : '未提出';
   const cardResult = self.cardInfo ? `<div>${esc(self.cardInfo.text)}</div>` : '';
-  return `<details class="panel personal-record"><summary>自分の記録</summary><div class="record-content"><div><b>現在の役職</b>：${esc(ownRole)}</div><div><b>手札</b>：${esc(hand)}</div><div><b>提出カード</b>：${esc(submitted)}</div><b>夜の行動</b>${actions.length ? `<ul>${actions.join('')}</ul>` : '<div>記録された行動はありません。</div>'}${cardResult}</div></details>`;
+  return `<details class="panel personal-record ${expanded ? 'expanded-record' : ''}" ${expanded ? 'open' : ''}><summary>${expanded ? 'あなたの役職と夜の行動' : '自分の記録'}</summary><div class="record-content"><div><b>現在の役職</b>：${esc(ownRole)}</div><div><b>手札</b>：${esc(hand)}</div><div><b>提出カード</b>：${esc(submitted)}</div><b>夜の行動</b>${actions.length ? `<ul>${actions.join('')}</ul>` : '<div>記録された行動はありません。</div>'}${cardResult}</div></details>`;
 }
 setInterval(() => {
   const timer = document.querySelector('#phaseTimer');
@@ -380,7 +380,7 @@ function renderLastTalkOnline() {
   const exposed = (room.publicCards || []).map(item => `<div class="revealed-card"><img class="result-card-art" src="${cardArtwork(item.cardId)}" alt=""><div><b>${card(item.cardId).name}</b><small>${item.targetId ? `対象：${esc(room.players.find(p => p.id === item.targetId)?.name || '不明')}` : '提出カード'}</small></div></div>`).join('');
   const reports = (room.cardResults || []).map(item => `<div class="card-effect">${item.role ? `<img class="claim-role-icon" src="${rolePortrait(item.role)}" alt="">` : ''}<b>${esc(item.kind)}</b><span>${esc(item.text)}</span></div>`).join('');
   const privateScout = self.cardInfo?.kind === '調査団' ? `<div class="night-result private-result"><small>あなたの調査団の結果</small>${self.cardInfo.role ? `<img src="${rolePortrait(self.cardInfo.role)}" alt="${role(self.cardInfo.role).name}">` : '<span class="unknown-role-art">?</span>'}<div><b>${esc(room.players.find(player => player.id === self.cardInfo.targetId)?.name || '該当者なし')}</b><span>${esc(self.cardInfo.text)}</span></div></div>` : '';
-  app.innerHTML = `${phaseHeader(room)}<section class="phase-card last-meeting-heading"><h1>最後の会議</h1></section>${privateScout}${onlinePanel('出されたカード', `<div class="revealed-card-grid">${exposed}</div>`)}${reports ? onlinePanel('カードの結果', `<div class="card-effect-list">${reports}</div>`) : ''}${claimPanel(room)}${chatPanel(room)}<div class="phase-actions">${readyButton('投票へ →')}</div>`;
+  app.innerHTML = `${phaseHeader(room)}${personalRecord(room, true)}${privateScout}${onlinePanel('出されたカード', `<div class="revealed-card-grid">${exposed}</div>`)}${reports ? onlinePanel('カードの結果', `<div class="card-effect-list">${reports}</div>`) : ''}${claimPanel(room)}${chatPanel(room)}<div class="phase-actions">${readyButton('投票へ →')}</div>`;
   wireChat();
   wireClaims();
   wireReady();
@@ -459,6 +459,10 @@ function renderEndingOnline() {
     const name = id === 'peace' ? '平和村' : room.players.find(player => player.id === id)?.name || '不明';
     return `<div class="vote-line"><span>${esc(name)}</span><div class="bar" style="width:${Math.max(6, n / Math.max(...Object.values(outcome.counts)) * 100)}%"></div><b>${n}</b></div>`;
   }).join('');
+  const individualVotes = report.map(item => {
+    const target = item.voteTargetId === 'peace' ? null : room.players.find(player => player.id === item.voteTargetId);
+    return `<div class="individual-vote"><div class="vote-person"><img src="${seatPortrait(item.playerId)}" alt=""><b>${esc(item.name)}</b></div><span class="vote-arrow">➜</span><div class="vote-person vote-recipient">${target ? `<img src="${seatPortrait(target.id)}" alt="">` : '<img src="./assets/icons/village.png" alt="">'}<b>${target ? esc(target.name) : '平和村'}</b></div></div>`;
+  }).join('');
   const results = report.map(item => {
     const voteTarget = item.voteTargetId === 'peace' ? '平和村' : room.players.find(player => player.id === item.voteTargetId)?.name || '不明';
     const cardTarget = room.players.find(player => player.id === item.cardTargetId)?.name;
@@ -474,24 +478,23 @@ function renderEndingOnline() {
     }).filter(Boolean).join('') || '<li>特別な夜の行動なし</li>';
     return `<article class="final-player-row"><div class="final-player-head"><img class="result-role-art" src="${rolePortrait(item.role)}" alt=""><div><b>${esc(item.name)}${executed ? ` · ${executed}` : ''}</b><small>役職：${role(item.role).name}${oldRole}</small></div><span class="final-score">+${item.scoreChange}点</span></div><div class="final-player-facts"><div><small>投票先</small><b>${esc(voteTarget)}</b></div><div><small>提出カード</small><span>${item.cardId ? `<img class="result-card-art" src="${cardArtwork(item.cardId)}" alt="">${esc(card(item.cardId).name)}${cardTarget ? ` / 対象 ${esc(cardTarget)}` : ''}` : 'なし'}</span></div><div><small>夜の行動</small><ul>${actionRows}</ul></div><div class="score-total">今回 ${item.scoreChange > 0 ? '+' : ''}${item.scoreChange}点　/　累計 ${item.totalScore}点</div></div></article>`;
   }).join('');
-  const claims = (room.claims || []).map(claim => claimMarkup(claim, room)).join('') || '<div class="empty">申告はありませんでした。</div>';
-  app.innerHTML = `${phaseHeader(room)}<div class="ending-screen"><div class="winner-banner ${outcome.winningSide}"><span class="eyebrow">THE NIGHT IS OVER</span><h1>${title}</h1><p>${reason}</p><div class="winner-lineup">${winningLineup || '<span>勝利チームなし</span>'}</div></div><div class="winner"><div class="winner-icon">${outcome.winningSide === 'teruteru' ? '🎭' : outcome.winningSide === 'wolf' ? '🌘' : '🌅'}</div><p>勝利チームは各 +1点</p></div>${onlinePanel('投票数', `${bars}${outcome.peaceOutcome ? '<div class="total-note">全員の得票数が同じ：平和村判定</div>' : ''}`)}${onlinePanel('プレイヤー別結果', `<div class="final-player-list">${results}</div>`)}${onlinePanel('カミングアウト記録', `<div class="claim-list">${claims}</div>`)}${onlinePanel('墓場', (outcome.grave || []).map(id => role(id).name).join('・'))}<div class="phase-actions">${state.room.private.isHost ? '<button class="button button-primary" id="rematch">次の試合を設定 →</button>' : '<div class="callout">ホストが次の試合を準備するのを待っています。</div>'}</div></div>`;
+  app.innerHTML = `${phaseHeader(room)}<div class="ending-screen"><div class="winner-banner ${outcome.winningSide}"><span class="eyebrow">THE NIGHT IS OVER</span><h1>${title}</h1><p>${reason}</p><div class="winner-lineup">${winningLineup || '<span>勝利チームなし</span>'}</div></div>${onlinePanel('だれがだれに投票した？', `<div class="individual-vote-grid">${individualVotes}</div>`)}${onlinePanel('得票数', `${bars}${outcome.peaceOutcome ? '<div class="total-note">全員の得票数が同じ：平和村判定</div>' : ''}`)}${onlinePanel('プレイヤー別結果', `<div class="final-player-list">${results}</div>`)}${onlinePanel('墓場', `<div class="grave-list"><img src="./assets/icons/grave.png" alt="墓場">${(outcome.grave || []).map(id => `<span><img src="${rolePortrait(id)}" alt="">${role(id).name}</span>`).join('') || '<small>なし</small>'}</div>`)}<div class="phase-actions">${state.room.private.isHost ? '<button class="button button-primary" id="rematch">次の試合を設定 →</button>' : '<div class="callout">ホストが次の試合を準備するのを待っています。</div>'}</div></div>`;
   const rematch = document.querySelector('#rematch');
   if (rematch) rematch.onclick = () => send('rematch');
 }
 
-function guide(type = 'flow') {
+function guide(type = 'roles') {
   document.querySelectorAll('.guide-tab').forEach(button => button.classList.toggle('active', button.dataset.guide === type));
   const content = document.querySelector('#guideContent');
   const counts = state.room?.roleCounts || state.roleCounts;
   const entries = type === 'flow'
-    ? [['役職確認・夜', '役職を確認して能力を使います。大狼は墓場を見て、人狼と大狼は仲間を確認します。'], ['朝の会議', '自由に話し合い、カミングアウトで役職や行動結果を申告できます。'], ['カード選択', '15秒以内に手札から1枚選びます。全員の提出後、匿名カードを見ながら最後の会議へ進みます。'], ['最後の会議・投票', '再び申告や議論をして、15秒以内に自分以外か平和村へ投票します。時間切れでは未選択分を自動処理します。'], ['勝利・ポイント', '試合結果に役職・行動・投票・カードとポイントを表示します。']]
+    ? [['役職確認・夜', '役職を確認して能力を使います。大狼は墓場を見て、人狼と大狼は仲間を確認します。', './assets/icons/night.png'], ['朝の会議', '自由に話し合い、カミングアウトで役職や行動結果を申告できます。', './assets/icons/morning.png'], ['カード提出', '15秒以内に手札から1枚選びます。全員の提出後、カードを見ながら最後の会議へ進みます。', './assets/icons/submit.png'], ['最後の会議・投票', '再び申告や議論をして、自分以外か平和村へ投票します。', './assets/icons/vote.png'], ['墓場と結果', '試合結果で役職・行動・カードと全員の投票先を確認できます。', './assets/icons/grave.png']]
     : type === 'roles' ? ROLES.map(item => [`${item.name} — ${counts[item.id] || 0}枚`, `${item.team} — ${item.desc}`, rolePortrait(item.id)])
-      : CARDS.map(item => [`${item.icon} ${item.name}`, item.desc, cardArtwork(item.id)]);
+      : CARDS.map(item => [`${item.name}`, item.desc, cardArtwork(item.id)]);
   content.innerHTML = entries.map(([heading, text, art]) => `<div class="guide-entry">${art ? `<img class="guide-art" src="${art}" alt="">` : ''}<div><b>${esc(heading)}</b><p>${esc(text)}</p></div></div>`).join('');
 }
-document.querySelector('#helpButton').onclick = () => { guide('flow'); dialog.showModal(); };
-document.querySelector('#rulesLink').onclick = () => { guide('flow'); dialog.showModal(); };
+document.querySelector('#helpButton').onclick = () => { guide('roles'); dialog.showModal(); };
+document.querySelector('#rulesLink').onclick = () => { guide('roles'); dialog.showModal(); };
 document.querySelector('.close-dialog').onclick = () => dialog.close();
 document.querySelectorAll('.guide-tab').forEach(button => button.onclick = () => guide(button.dataset.guide));
 

@@ -12,7 +12,7 @@
   <div class="app-shell">
     <header class="topbar">
       <a class="brand" href="#" aria-label="夜明け前 ホーム"><span class="brand-mark">✦</span><span>夜明け前</span></a>
-      <button class="icon-button" id="helpButton" aria-label="遊び方">?</button>
+      <button class="icon-button help-button" id="helpButton" aria-label="説明を開く"><img src="./assets/icons/help.png" alt=""></button>
     </header>
 
     <main id="app" class="main-content"></main>
@@ -21,7 +21,7 @@
   </div>
   <dialog id="rulesDialog" class="rules-dialog">
     <div class="dialog-head"><div><span class="eyebrow">QUICK GUIDE</span><h2>ゲームガイド</h2></div><button class="icon-button close-dialog" aria-label="閉じる">×</button></div>
-    <div class="guide-tabs"><button class="guide-tab active" data-guide="flow">遊び方</button><button class="guide-tab" data-guide="roles">役職</button><button class="guide-tab" data-guide="cards">カード</button></div>
+    <div class="guide-tabs"><button class="guide-tab active" data-guide="roles"><img src="./assets/icons/village.png" alt="">役職</button><button class="guide-tab" data-guide="cards"><img src="./assets/icons/submit.png" alt="">カード</button><button class="guide-tab" data-guide="flow"><img src="./assets/icons/help.png" alt="">遊び方</button></div>
     <div id="guideContent" class="guide-content"></div>
   </dialog>
   <div id="toast" class="toast" role="status"></div>

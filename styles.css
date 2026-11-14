@@ -217,4 +217,22 @@ body{background:radial-gradient(ellipse at 50% 17%,#263f74 0,transparent 44%),li
 .night-result img,.morning-role>img,.hand-chip img,.role-mini,.seat-portrait,.claim-speaker,.guide-art{object-fit:cover}
 .timer{min-width:88px;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap}
 html{scroll-behavior:auto}
+.game-logo{display:block;width:min(100%,335px);height:auto;margin:-13px auto 1px;filter:drop-shadow(0 8px 12px #080411a8)}
+.help-button{display:grid;place-items:center;overflow:hidden;padding:2px}
+.help-button img{width:30px;height:30px;object-fit:contain;border-radius:7px}
+.guide-tab{display:flex;align-items:center;justify-content:center;gap:5px}
+.guide-tab img{width:22px;height:22px;object-fit:contain;border-radius:5px}
+.personal-record.expanded-record .record-content{max-height:none!important;overflow:visible!important}
+.individual-vote-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.individual-vote{display:grid;grid-template-columns:minmax(0,1fr) 13px minmax(0,1fr);align-items:center;gap:3px;min-width:0;padding:7px 6px;border:1px solid #ba8746;border-radius:10px;background:linear-gradient(145deg,#fff0cf,#e8c58f);color:#4c3443;box-shadow:inset 0 0 0 1px #fff8e4,0 2px 0 #70433d}
+.vote-person{display:flex;align-items:center;gap:4px;min-width:0}
+.vote-person img{width:25px;height:27px;flex:0 0 25px;object-fit:cover;object-position:center;border-radius:6px;border:1px solid #ae783f;background:#1b2a48}
+.vote-person b{font-size:9px;line-height:1.15;overflow-wrap:anywhere;color:#513644}
+.vote-recipient{justify-content:flex-end;text-align:right}
+.vote-arrow{font-size:12px;text-align:center;color:#995038}
+.grave-list{display:flex;align-items:center;flex-wrap:wrap;gap:7px}
+.grave-list>img{width:42px;height:45px;object-fit:contain}
+.grave-list>span{display:flex;align-items:center;gap:4px;padding:4px 6px;border:1px solid #bb8b4e;border-radius:8px;background:#fff0d0;color:#513845;font-size:9px}
+.grave-list>span img{width:25px;height:27px;object-fit:cover;border-radius:5px}
+@media(max-width:360px){.individual-vote-grid{gap:5px}.individual-vote{grid-template-columns:minmax(0,1fr) 10px minmax(0,1fr);gap:2px;padding:5px 4px}.vote-person img{width:21px;height:23px;flex-basis:21px}.vote-person b{font-size:8px}}
 @media(max-width:390px){.compact-role-showcase{grid-template-columns:104px 1fr;padding:7px 9px}.compact-role-showcase .role-portrait{height:133px}.role-main h1{font-size:19px}.morning-focus{padding:6px}.morning-role>img{width:43px;height:46px;flex-basis:43px}.morning-caption{font-size:9px}.hand-chip{gap:3px;padding:3px}.hand-chip img{width:27px;height:29px;flex-basis:27px}.hand-chip b{font-size:7px}.personal-record summary{font-size:9px}}
