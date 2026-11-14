@@ -129,7 +129,7 @@ test('HTTP/SSE multiplayer flow keeps private roles and hands isolated through t
   const morningStates = await Promise.all(streams.map(stream => stream.waitFor(value => value.phase === 'morning')));
   await post('/api/action', { code: host.code, token: host.token, action: 'claim', claimType: 'role', roleId: 'villager' });
   await post('/api/action', { code: host.code, token: host.token, action: 'claim', claimType: 'role', roleId: 'seer', targetId: 'grave', resultRoleId: 'wolf' });
-  const claimStates = await Promise.all(streams.map(stream => stream.waitFor(value => value.claims?.some(claim => claim.playerId === value.private.playerId) || value.claims?.length)));
+  const claimStates = await Promise.all(streams.map(stream => stream.waitFor(value => value.claims?.length >= 2)));
   assert.equal(claimStates.every(value => value.claims.some(claim => claim.claimType === 'role' && claim.roleId === 'villager')), true, 'role claims are public statements and need not match the real role');
   assert.equal(claimStates.every(value => value.claims.some(claim => claim.targetId === 'grave' && claim.resultRoleId === 'wolf')), true, 'players may name a grave role in a public claim');
   await post('/api/action', { code: host.code, token: host.token, action: 'chat', message: '朝のチャット確認' });

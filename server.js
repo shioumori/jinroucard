@@ -373,7 +373,7 @@ function applyAction(room, player, body) {
     const { claimType, roleId, targetId, resultRoleId } = body;
     if (!['role', 'seer', 'vampire', 'doctor', 'grave'].includes(claimType)) throw new Error('表明の種類を選んでください。');
     if (!ROLE_BY_ID.has(roleId)) throw new Error('役職を選んでください。');
-    if (targetId && !room.players.some(item => item.id === targetId)) throw new Error('対象プレイヤーを選んでください。');
+    if (targetId && targetId !== 'grave' && !room.players.some(item => item.id === targetId)) throw new Error('対象プレイヤーを選んでください。');
     if (['seer', 'vampire', 'doctor'].includes(claimType) && !room.players.some(item => item.id === targetId)) throw new Error('相手プレイヤーを選んでください。');
     if (claimType === 'role' && targetId && targetId !== 'grave' && !room.players.some(item => item.id === targetId)) throw new Error('相手プレイヤーまたは墓場を選んでください。');
     if ((claimType === 'vampire' || (claimType === 'role' && targetId)) && !ROLE_BY_ID.has(resultRoleId)) throw new Error('相手の役職を選んでください。');
