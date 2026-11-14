@@ -240,8 +240,11 @@ setInterval(() => {
   timer.textContent = `残り ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 }, 500);
 function playerList(room) {
-  return `<div class="player-list">${room.players.map(player => `<div class="player-item"><span class="avatar">${esc(player.name.slice(0, 1))}</span>${esc(player.name)}${player.isHost ? '<em>ホスト</em>' : ''}<em>${player.online ? (player.ready ? '準備OK' : 'オンライン') : '再接続待ち'}</em></div>`).join('')}</div>`;
+  return `<div class="player-list">${room.players.map(player => `<div class="player-item"><img class="avatar portrait-avatar" src="${seatPortrait(player.id)}" alt=""><span class="player-name">${esc(player.name)}</span>${player.isHost ? '<em>ホスト</em>' : ''}<em>${player.online ? (player.ready ? '準備OK' : 'オンライン') : '再接続待ち'}</em></div>`).join('')}</div>`;
 }
+// Seat portraits are decorative identities, independent of the secretly dealt role.
+const SEAT_PORTRAITS = ['villager', 'seer', 'vampire', 'mayor', 'doctor', 'teruteru', 'madman', 'villager'];
+function seatPortrait(id) { const seed = [...String(id)].reduce((sum, char) => sum + char.charCodeAt(0), 0); return `./assets/roles/${SEAT_PORTRAITS[seed % SEAT_PORTRAITS.length]}.png`; }
 function onlinePanel(title, content, small = '') {
   return `<div class="panel"><div class="panel-title">${title}${small ? `<small>${small}</small>` : ''}</div>${content}</div>`;
 }
@@ -291,7 +294,7 @@ function renderRoleOnline() {
   wireReady();
 }
 function targetButtons(players, selected, options = []) {
-  return `<div class="seat-grid">${players.map(player => `<button class="seat ${selected === player.id ? 'selected' : ''}" data-target="${esc(player.id)}">${esc(player.name)}<small>プレイヤー</small></button>`).join('')}${options.map(option => `<button class="seat ${selected === option.id ? 'selected' : ''}" data-target="${option.id}">${option.label}<small>${option.detail || ''}</small></button>`).join('')}</div>`;
+  return `<div class="seat-grid">${players.map(player => `<button class="seat ${selected === player.id ? 'selected' : ''}" data-target="${esc(player.id)}"><img class="seat-portrait" src="${seatPortrait(player.id)}" alt=""><b>${esc(player.name)}</b><small>プレイヤー</small></button>`).join('')}${options.map(option => `<button class="seat ${selected === option.id ? 'selected' : ''}" data-target="${option.id}"><span class="seat-symbol">${option.id.startsWith('grave') ? '✦' : '☼'}</span><b>${option.label}</b><small>${option.detail || ''}</small></button>`).join('')}</div>`;
 }
 function renderNightOnline() {
   const room = state.room, self = room.private, ownRole = role(self.role);
@@ -369,7 +372,7 @@ function claimMarkup(claim, room) {
       : claim.claimType === 'vampire' ? `交換：${esc(target)}（${roleIcon}${esc(claimedRole)}）と交換、自分は <img class="claim-role-icon" src="${rolePortrait(claim.resultRoleId)}" alt="">${esc(role(claim.resultRoleId).name)}`
         : claim.claimType === 'doctor' ? `治療：${esc(target)}（${roleIcon}${esc(claimedRole)} → 村人）`
           : `墓場：${roleIcon}${esc(claimedRole)}`;
-  return `<div class="claim-row"><img class="claim-speaker" src="./assets/villager.png" alt=""><div><b>${esc(speaker)}</b><span>${statement}</span></div></div>`;
+  return `<div class="claim-row"><img class="claim-speaker" src="${seatPortrait(claim.playerId)}" alt=""><div><b>${esc(speaker)}</b><span>${statement}</span></div></div>`;
 }
 function wireClaims() {
   const form = document.querySelector('#claimForm');
