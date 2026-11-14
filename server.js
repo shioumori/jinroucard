@@ -13,8 +13,10 @@ const {
 const ROOT = __dirname;
 const PORT = Number(process.env.PORT || 8080);
 const rooms = new Map();
+const AVATAR_IDS = Array.from({ length: 16 }, (_, index) => `voxel-${String(index + 1).padStart(2, '0')}`);
 const PUBLIC_FILES = new Set([
-  'index.html', 'styles.css', 'app.js', 'assets/werewolf.png', 'assets/villager.png', 'assets/night-village.png', 'assets/day-village.png',
+  'index.html', 'manifest.webmanifest', 'styles.css', 'app.js', 'assets/werewolf.png', 'assets/villager.png', 'assets/night-village.png', 'assets/day-village.png',
+  'assets/game-icon.png', ...AVATAR_IDS.map(id => `assets/avatars/${id}.png`),
   ...['seer', 'vampire', 'doctor', 'teruteru', 'bigwolf', 'madman', 'mayor', 'monk', 'researcher', 'scout'].map(id => `assets/character-art/${id}.png`),
   'assets/game-logo.png', ...['village', 'wolves', 'vote', 'submit', 'morning', 'night', 'grave', 'help'].map(id => `assets/icons/${id}.png`),
   ...ROLES.map(item => `assets/roles/${item.id}.png`), ...CARDS.map(item => `assets/cards/${item.id}.png`)
@@ -22,7 +24,7 @@ const PUBLIC_FILES = new Set([
 const TYPES = {
   '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8',
-  '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon'
+  '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.webmanifest': 'application/manifest+json; charset=utf-8'
 };
 
 function json(res, status, data) {
@@ -59,9 +61,10 @@ function makeCode() {
   return code;
 }
 
-function newPlayer(name, host) {
+function newPlayer(name, host, avatarId = 'voxel-01') {
   return {
     id: randomUUID(), token: randomBytes(32).toString('base64url'), name: String(name || '').trim().slice(0, 24) || 'プレイヤー',
+    avatarId: AVATAR_IDS.includes(avatarId) ? avatarId : 'voxel-01',
     host, online: false, stream: null, role: null, originalRole: null, hand: [],
     actionSubmitted: false, cardSubmitted: false, voteSubmitted: false, nightInfo: null, cardInfo: null
   };
@@ -86,7 +89,7 @@ function publicState(room, viewer) {
     code: room.code, phase: room.phase, round: room.round, count: room.count,
     discussionSeconds: room.discussionSeconds, phaseEndsAt: room.phaseEndsAt || null,
     roleCounts: room.roleCounts, players: room.players.map(player => ({
-      id: player.id, name: player.name, online: player.online, isHost: player.host,
+      id: player.id, name: player.name, avatarId: player.avatarId, online: player.online, isHost: player.host,
       ready: room.ready.has(player.id), submitted: player.cardSubmitted,
       actionSubmitted: player.actionSubmitted, voteSubmitted: player.voteSubmitted,
       role: ending ? player.role : undefined, originalRole: ending ? player.originalRole : undefined
@@ -126,7 +129,7 @@ function publicState(room, viewer) {
   const ownSubmission = room.submissions.get(viewer.id);
   const ownExchange = [...room.actionLog].reverse().find(row => row.kind === '交換' && row.actorId === viewer.id);
   data.private = {
-    playerId: viewer.id, name: viewer.name, token: viewer.token, isHost: viewer.host,
+    playerId: viewer.id, name: viewer.name, avatarId: viewer.avatarId, token: viewer.token, isHost: viewer.host,
     // Only the vampire is told their new role. Other targets keep seeing their starting role until the reveal.
     role: ending ? viewer.role : ownExchange?.actorAfterRole || viewer.originalRole || viewer.role,
     originalRole: viewer.originalRole,
@@ -200,10 +203,13 @@ function joinRoom(body) {
   const room = rooms.get(code);
   if (!room) throw new Error('部屋が見つかりません。');
   const existing = body.token && findPlayer(room, body.token);
-  if (existing) return { room, player: existing };
+  if (existing) {
+    if (room.phase === 'lobby' && AVATAR_IDS.includes(body.avatarId)) existing.avatarId = body.avatarId;
+    return { room, player: existing };
+  }
   if (room.phase !== 'lobby') throw new Error('この試合はすでに始まっています。');
   if (room.players.length >= room.count) throw new Error('この部屋は満員です。');
-  const player = newPlayer(body.name, false);
+  const player = newPlayer(body.name, false, body.avatarId);
   if (room.players.some(existing => existing.name.toLocaleLowerCase() === player.name.toLocaleLowerCase())) {
     throw new Error('同じ名前の参加者がいます。別の名前にしてください。');
   }
@@ -369,6 +375,7 @@ function applyAction(room, player, body) {
     if (!ROLE_BY_ID.has(roleId)) throw new Error('役職を選んでください。');
     if (targetId && !room.players.some(item => item.id === targetId)) throw new Error('対象プレイヤーを選んでください。');
     if (['seer', 'vampire', 'doctor'].includes(claimType) && !room.players.some(item => item.id === targetId)) throw new Error('相手プレイヤーを選んでください。');
+    if (claimType === 'role' && targetId && targetId !== 'grave' && !room.players.some(item => item.id === targetId)) throw new Error('相手プレイヤーまたは墓場を選んでください。');
     if ((claimType === 'vampire' || (claimType === 'role' && targetId)) && !ROLE_BY_ID.has(resultRoleId)) throw new Error('相手の役職を選んでください。');
     room.claims.push({ playerId: player.id, claimType, roleId, targetId: targetId || null, resultRoleId: resultRoleId || null, phase: room.phase, round: room.round, at: Date.now() });
     return;
@@ -377,6 +384,7 @@ function applyAction(room, player, body) {
     case 'start': {
       if (!player.host || room.phase !== 'lobby') throw new Error('ホストだけが試合を開始できます。');
       if (room.players.length !== room.count || room.players.some(item => !item.online)) throw new Error('設定した人数が全員オンラインになると開始できます。');
+      if (room.ready.size !== room.players.length) throw new Error('全員が準備OKを押してから開始してください。');
       resetRound(room);
       dealRoles(room);
       return;
@@ -396,9 +404,15 @@ function applyAction(room, player, body) {
         morning: Number(discussionSeconds.morning ?? room.discussionSeconds?.morning ?? 120),
         lastTalk: Number(discussionSeconds.lastTalk ?? room.discussionSeconds?.lastTalk ?? 120)
       };
+      room.ready.clear();
       return;
     }
     case 'ready': {
+      if (room.phase === 'lobby') {
+        if (room.ready.has(player.id)) room.ready.delete(player.id);
+        else room.ready.add(player.id);
+        return;
+      }
       if (!['dealing', 'morning', 'results', 'lastTalk'].includes(room.phase)) throw new Error('今は確認操作を行えません。');
       advanceReadyPhase(room, player);
       return;
@@ -465,7 +479,7 @@ async function handle(req, res) {
           players: [], scores: new Map(), phase: 'lobby', round: 0, ready: new Set(),
           nightActions: new Map(), submissions: new Map(), votes: new Map(), actionLog: [], cardResults: [], publicCards: [], messages: [], claims: [], discussionSeconds: { morning: 120, lastTalk: 120 }, phaseTimer: null, phaseEndsAt: null, createdAt: Date.now(), lastActivity: Date.now()
         };
-        const player = newPlayer(body.name, true);
+        const player = newPlayer(body.name, true, body.avatarId);
         room.players.push(player); room.scores.set(player.id, 0); rooms.set(code, room);
         return json(res, 201, { code, token: player.token, playerId: player.id });
       }

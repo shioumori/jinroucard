@@ -69,7 +69,7 @@ test('HTTP/SSE multiplayer flow keeps private roles and hands isolated through t
   };
   const sourceResponse = await fetch(`${base}/app.js`);
   assert.equal(sourceResponse.status, 200);
-  for (const asset of ['/assets/game-logo.png', '/assets/icons/grave.png', '/assets/icons/morning.png', '/assets/icons/night.png', '/assets/icons/help.png']) {
+  for (const asset of ['/assets/game-logo.png', '/assets/game-icon.png', '/assets/avatars/voxel-01.png', '/assets/icons/grave.png', '/assets/icons/morning.png', '/assets/icons/night.png', '/assets/icons/help.png']) {
     const assetResponse = await fetch(`${base}${asset}`);
     assert.equal(assetResponse.status, 200, `${asset} should be available to the game UI`);
   }
@@ -86,11 +86,22 @@ test('HTTP/SSE multiplayer flow keeps private roles and hands isolated through t
   };
 
   const roleCounts = { villager: 1, wolf: 1, bigwolf: 0, madman: 0, seer: 1, mayor: 0, vampire: 0, doctor: 1, teruteru: 1 };
-  const host = await post('/api/create', { name: 'ホスト', code: `test-${Date.now()}`, count: 3, roleCounts });
+  const host = await post('/api/create', { name: 'ホスト', avatarId: 'voxel-03', code: `test-${Date.now()}`, count: 3, roleCounts });
   const players = [host];
-  for (const name of ['参加者A', '参加者B']) players.push(await post('/api/join', { name, code: host.code }));
+  for (const [index, name] of ['参加者A', '参加者B'].entries()) players.push(await post('/api/join', { name, avatarId: `voxel-0${index + 4}`, code: host.code }));
   const streams = await Promise.all(players.map(player => open(host.code, player.token)));
-  await Promise.all(streams.map(stream => stream.waitFor(value => value.phase === 'lobby')));
+  const lobbyStates = await Promise.all(streams.map(stream => stream.waitFor(value => value.phase === 'lobby')));
+  assert.deepEqual(lobbyStates[0].players.map(player => player.avatarId), ['voxel-03', 'voxel-04', 'voxel-05'], 'chosen player icons are shared with the lobby');
+
+  const prematureStart = await fetch(`${base}/api/action`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: host.code, token: host.token, action: 'start' }) });
+  assert.equal(prematureStart.status, 400, 'the game master cannot start before everyone is ready');
+  for (const value of lobbyStates) await post('/api/action', { code: host.code, token: value.private.token, action: 'ready' });
+  await Promise.all(streams.map(stream => stream.waitFor(value => value.phase === 'lobby' && value.readyCount === 3)));
+  await post('/api/action', { code: host.code, token: host.token, action: 'settings', count: 3, roleCounts, discussionSeconds: { morning: 120, lastTalk: 120 } });
+  assert.equal(rooms.get(host.code).ready.size, 0, 'saving settings requires everyone to confirm readiness again');
+  const settingsStart = await fetch(`${base}/api/action`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: host.code, token: host.token, action: 'start' }) });
+  assert.equal(settingsStart.status, 400, 'settings changes clear the prior ready votes');
+  for (const value of lobbyStates) await post('/api/action', { code: host.code, token: value.private.token, action: 'ready' });
 
   await post('/api/action', { code: host.code, token: host.token, action: 'start' });
   const roleStates = await Promise.all(streams.map(stream => stream.waitFor(value => value.phase === 'role')));
@@ -117,8 +128,10 @@ test('HTTP/SSE multiplayer flow keeps private roles and hands isolated through t
   for (const value of dealingStates) await post('/api/action', { code: host.code, token: value.private.token, action: 'ready' });
   const morningStates = await Promise.all(streams.map(stream => stream.waitFor(value => value.phase === 'morning')));
   await post('/api/action', { code: host.code, token: host.token, action: 'claim', claimType: 'role', roleId: 'villager' });
+  await post('/api/action', { code: host.code, token: host.token, action: 'claim', claimType: 'role', roleId: 'seer', targetId: 'grave', resultRoleId: 'wolf' });
   const claimStates = await Promise.all(streams.map(stream => stream.waitFor(value => value.claims?.some(claim => claim.playerId === value.private.playerId) || value.claims?.length)));
   assert.equal(claimStates.every(value => value.claims.some(claim => claim.claimType === 'role' && claim.roleId === 'villager')), true, 'role claims are public statements and need not match the real role');
+  assert.equal(claimStates.every(value => value.claims.some(claim => claim.targetId === 'grave' && claim.resultRoleId === 'wolf')), true, 'players may name a grave role in a public claim');
   await post('/api/action', { code: host.code, token: host.token, action: 'chat', message: '朝のチャット確認' });
   const chattedStates = await Promise.all(streams.map(stream => stream.waitFor(value => value.messages.some(message => message.text === '朝のチャット確認'))));
   assert.equal(chattedStates.every(value => value.messages.some(message => message.name === 'ホスト')), true);

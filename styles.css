@@ -235,4 +235,65 @@ html{scroll-behavior:auto}
 .grave-list>span{display:flex;align-items:center;gap:4px;padding:4px 6px;border:1px solid #bb8b4e;border-radius:8px;background:#fff0d0;color:#513845;font-size:9px}
 .grave-list>span img{width:25px;height:27px;object-fit:cover;border-radius:5px}
 @media(max-width:360px){.individual-vote-grid{gap:5px}.individual-vote{grid-template-columns:minmax(0,1fr) 10px minmax(0,1fr);gap:2px;padding:5px 4px}.vote-person img{width:21px;height:23px;flex-basis:21px}.vote-person b{font-size:8px}}
+.setup-page,.join-page{display:grid;gap:7px}
+.setup-head{margin:0 0 2px}
+.setup-head .back{margin-bottom:6px}
+.setup-head h1{font-size:21px;margin:3px 0}
+.setup-head p,.join-page .page-head p{font-size:10px;line-height:1.4}
+.setup-panel{margin:0;padding:9px 10px;border-radius:12px}
+.setup-panel .panel-title{margin-bottom:7px}
+.setup-panel .field{margin:7px 0}
+.setup-panel .input{height:40px}
+.setup-identity{display:grid;grid-template-columns:minmax(0,1fr);gap:5px}
+.avatar-picker{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:3px;min-width:0}
+.avatar-choice{aspect-ratio:1;min-width:0;padding:2px;border:1px solid #897149;border-radius:7px;background:#111b2b;cursor:pointer;overflow:hidden}
+.avatar-choice img{display:block;width:100%;height:100%;object-fit:cover;border-radius:4px}
+.avatar-choice.selected{border:2px solid #ffdb68;box-shadow:0 0 0 2px #d57835,0 0 9px #ffd34e;transform:translateY(-1px)}
+.setup-panel .role-list-compact{grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+.role-list-compact .role-row{display:grid;grid-template-columns:minmax(0,1fr);justify-items:center;align-content:center;gap:3px;min-width:0;min-height:67px;padding:4px 2px;border:1px solid #99723f;border-radius:8px;background:linear-gradient(145deg,#142d4d,#0b1b33);text-align:center}
+.role-list-compact .role-label{display:grid;justify-items:center;gap:2px;min-width:0}
+.role-list-compact .role-mini{width:24px;height:25px;border-radius:5px}
+.role-list-compact .role-name{font-size:9px;line-height:1.1;white-space:nowrap}
+.role-list-compact .role-desc{display:none}
+.role-list-compact .stepper{gap:4px;justify-content:center}
+.role-list-compact .stepper button{width:23px;height:22px;font-size:13px;line-height:18px}
+.role-list-compact .stepper b,.role-list-compact>strong{min-width:14px;font-size:10px;color:#ffe29c}
+.setup-panel .total-note{margin:5px 0 0;font-size:9px}
+.setup-panel .alert{margin:5px 0 0;padding:6px;font-size:9px}
+.custom-code-field{margin:2px 0}
+.custom-code-field label small{color:#aeb7c5;font-size:9px}
+.custom-code-field .input{height:39px}
+.join-page .panel{padding:12px}
+.join-page .panel .field{margin:8px 0}
+.join-page .avatar-picker{grid-template-columns:repeat(8,minmax(0,1fr));max-width:340px}
+.game-top{align-items:center}
+.copy-code-mini{width:24px;height:20px;padding:0;border:1px solid #9e753d;border-radius:6px;color:#ffdc89;background:#0b1b32;font-size:13px;line-height:18px}
+.room-code-small{margin-right:auto}
+.lobby-settings{padding:10px}
+.lobby-settings>.segmented{margin-bottom:7px}
+.lobby-settings .role-list-compact .role-row{min-height:57px;padding:3px}
+.lobby-settings .field{margin:6px 0}
+.lobby-settings .input{height:36px}
+.lobby-settings .button{min-height:38px}
+.lobby-ready{margin:7px 0;padding:10px}
+.lobby-ready .button{width:100%;min-height:43px}
+.ready-note{display:block;margin:5px 1px 0;color:#dfcfac;font-size:9px;line-height:1.4}
+.last-talk-focus{padding:7px}
+.last-talk-focus .morning-role>img{width:50px;height:51px;flex-basis:50px}
+.last-talk-focus .night-result{margin-top:5px}
+.player-item .portrait-avatar{object-fit:cover;object-position:center}
+.role-row{grid-template-columns:minmax(0,1fr) auto}
+.final-player-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.final-player-row{padding:7px;border-radius:10px;box-shadow:inset 0 0 0 1px #fff9e8,0 2px 0 #805047}
+.final-player-head{gap:5px}
+.final-player-head .result-role-art{width:32px;height:34px;flex-basis:32px}
+.final-player-head b{font-size:9px}
+.final-player-head small{font-size:8px}
+.final-score{padding:3px 5px;font-size:9px}
+.final-player-facts{gap:4px;margin-top:5px;padding-top:5px}
+.final-player-facts small{font-size:7px}
+.final-player-facts b,.final-player-facts span,.final-player-facts li{font-size:8px;line-height:1.35;overflow-wrap:anywhere}
+.final-player-facts .result-card-art{width:20px;height:21px;flex-basis:20px}
+.final-player-facts .score-total{font-size:8px}
+@media(max-width:390px){.setup-panel{padding:8px}.setup-identity{grid-template-columns:minmax(0,1fr);gap:5px}.avatar-picker{gap:2px}.avatar-choice{padding:1px}.role-list-compact .role-row{min-height:61px}.role-list-compact .role-name{font-size:8px}.role-list-compact .role-mini{width:22px;height:22px}.lobby-settings .role-list-compact .role-row{min-height:53px}}
 @media(max-width:390px){.compact-role-showcase{grid-template-columns:104px 1fr;padding:7px 9px}.compact-role-showcase .role-portrait{height:133px}.role-main h1{font-size:19px}.morning-focus{padding:6px}.morning-role>img{width:43px;height:46px;flex-basis:43px}.morning-caption{font-size:9px}.hand-chip{gap:3px;padding:3px}.hand-chip img{width:27px;height:29px;flex-basis:27px}.hand-chip b{font-size:7px}.personal-record summary{font-size:9px}}
