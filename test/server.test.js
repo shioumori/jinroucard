@@ -69,7 +69,7 @@ test('HTTP/SSE multiplayer flow keeps private roles and hands isolated through t
   };
   const sourceResponse = await fetch(`${base}/app.js`);
   assert.equal(sourceResponse.status, 200);
-  for (const asset of ['/assets/game-logo.png', '/assets/game-icon.png', '/assets/avatars/voxel-01.png', '/assets/icons/grave.png', '/assets/icons/morning.png', '/assets/icons/night.png', '/assets/icons/help.png']) {
+  for (const asset of ['/manifest.json', '/assets/game-logo.png', '/assets/game-icon.png', '/assets/avatars/voxel-01.png', '/assets/icons/grave.png', '/assets/icons/morning.png', '/assets/icons/night.png', '/assets/icons/help.png']) {
     const assetResponse = await fetch(`${base}${asset}`);
     assert.equal(assetResponse.status, 200, `${asset} should be available to the game UI`);
   }

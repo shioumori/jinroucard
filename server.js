@@ -15,7 +15,7 @@ const PORT = Number(process.env.PORT || 8080);
 const rooms = new Map();
 const AVATAR_IDS = Array.from({ length: 16 }, (_, index) => `voxel-${String(index + 1).padStart(2, '0')}`);
 const PUBLIC_FILES = new Set([
-  'index.html', 'manifest.webmanifest', 'styles.css', 'app.js', 'assets/werewolf.png', 'assets/villager.png', 'assets/night-village.png', 'assets/day-village.png',
+  'index.html', 'manifest.json', 'styles.css', 'app.js', 'assets/werewolf.png', 'assets/villager.png', 'assets/night-village.png', 'assets/day-village.png',
   'assets/game-icon.png', ...AVATAR_IDS.map(id => `assets/avatars/${id}.png`),
   ...['seer', 'vampire', 'doctor', 'teruteru', 'bigwolf', 'madman', 'mayor', 'monk', 'researcher', 'scout'].map(id => `assets/character-art/${id}.png`),
   'assets/game-logo.png', ...['village', 'wolves', 'vote', 'submit', 'morning', 'night', 'grave', 'help'].map(id => `assets/icons/${id}.png`),
@@ -24,7 +24,7 @@ const PUBLIC_FILES = new Set([
 const TYPES = {
   '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8',
-  '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.webmanifest': 'application/manifest+json; charset=utf-8'
+  '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon'
 };
 
 function json(res, status, data) {
