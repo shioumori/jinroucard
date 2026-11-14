@@ -460,6 +460,11 @@ function applyAction(room, player, body) {
 async function handle(req, res) {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   if (req.method === 'GET' && url.pathname === '/health') return json(res, 200, { ok: true });
+  if (req.method === 'GET' && url.pathname === '/manifest.json') {
+    res.writeHead(200, { 'content-type': 'application/manifest+json; charset=utf-8', 'cache-control': 'public, max-age=3600', 'x-content-type-options': 'nosniff' });
+    res.end(JSON.stringify({ name: '夜明け前 — ワンナイト人狼', short_name: '夜明け前', start_url: '/', display: 'standalone', background_color: '#100d25', theme_color: '#100d25', icons: [{ src: '/assets/game-icon.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }] }));
+    return;
+  }
   if (req.method === 'GET' && url.pathname === '/api/session') {
     const room = rooms.get(url.searchParams.get('room'));
     const player = room && findPlayer(room, url.searchParams.get('token'));
