@@ -177,7 +177,7 @@ test('equal votes across all players make Peace Village; wolves win if present',
   const room = makeRoom({});
   room.players.forEach((player, i) => { player.role = ['wolf', 'villager', 'teruteru', 'madman', 'seer'][i]; });
   room.submissions = new Map(); room.cardModifiers = {};
-  room.votes = new Map(room.players.map((player, i) => [player.id, room.players[(i + 1) % room.players.length].id]));
+  room.votes = new Map(room.players.map(player => [player.id, 'peace']));
   resolveVotes(room);
   assert.equal(room.outcome.peaceOutcome, true);
   assert.equal(room.outcome.executedIds.length, 0);
@@ -190,11 +190,22 @@ test('equal votes without wolves give points to neither Teruteru nor Madman', ()
   const room = makeRoom({});
   room.players.forEach((player, i) => { player.role = ['villager', 'teruteru', 'madman', 'seer', 'doctor'][i]; });
   room.submissions = new Map(); room.cardModifiers = {};
-  room.votes = new Map(room.players.map((player, i) => [player.id, room.players[(i + 1) % room.players.length].id]));
+  room.votes = new Map(room.players.map(player => [player.id, 'peace']));
   resolveVotes(room);
   assert.equal(room.outcome.peaceOutcome, true);
   assert.equal(room.outcome.winningSide, 'village');
   assert.equal(room.outcome.scoreChanges.p0, 1);
   assert.equal(room.outcome.scoreChanges.p1, 0);
   assert.equal(room.outcome.scoreChanges.p2, 0);
+});
+
+test('a non-unanimous Peace Village vote cannot prevent the leading player from being executed', () => {
+  const room = makeRoom({}, ['A', 'B', 'C']);
+  room.players.forEach((player, i) => { player.role = ['villager', 'wolf', 'seer'][i]; });
+  room.submissions = new Map(); room.cardModifiers = {};
+  room.votes = new Map([['p0', 'peace'], ['p1', 'peace'], ['p2', 'p1']]);
+  resolveVotes(room);
+  assert.equal(room.outcome.peaceOutcome, false);
+  assert.deepEqual(room.outcome.executedIds, ['p1']);
+  assert.equal(room.outcome.winningSide, 'village');
 });

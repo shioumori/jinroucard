@@ -214,14 +214,15 @@ function resolveVotes(room) {
   if (activeWolfId && saviorActive) counts[activeWolfId] += 1;
   if (activeWolfId && shadowActive) counts[activeWolfId] = Math.max(0, counts[activeWolfId] - 1);
 
-  const playerCounts = room.players.map(player => counts[player.id]);
-  const peaceOutcome = playerCounts.every(voteCount => voteCount === playerCounts[0]);
-  const highest = Math.max(...Object.values(counts));
-  let leaders = Object.entries(counts).filter(([, voteCount]) => voteCount === highest).map(([id]) => id);
-  if (peaceOutcome) leaders = ['peace'];
-  else if (leaders.includes('peace') && leaders.length > 1) leaders = leaders.filter(id => id !== 'peace');
-  const executedIds = peaceOutcome ? [] : leaders.filter(id => id !== 'peace');
-  const peaceVoted = !peaceOutcome && leaders.length === 1 && leaders[0] === 'peace';
+  const peaceOutcome = room.players.length > 0
+    && room.votes.size === room.players.length
+    && [...room.votes.values()].every(targetId => targetId === 'peace');
+  const highestPlayerVote = Math.max(0, ...room.players.map(player => counts[player.id]));
+  let leaders = peaceOutcome ? ['peace'] : room.players
+    .filter(player => counts[player.id] === highestPlayerVote)
+    .map(player => player.id);
+  const executedIds = peaceOutcome ? [] : leaders;
+  const peaceVoted = false;
   const wolves = room.players.filter(player => WOLF_ROLES.has(player.role));
   const teruteru = room.players.find(player => player.role === 'teruteru');
   const teruteruWon = !!teruteru && executedIds.includes(teruteru.id);
