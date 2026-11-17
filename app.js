@@ -7,8 +7,8 @@ const ROLES = [
   { id: 'madman', name: '狂人', team: '人狼陣営', color: '#d993b2', desc: '人狼が誰かは知りません。人狼陣営が勝てば勝利します。' },
   { id: 'seer', name: '占い師', team: '村人陣営', color: '#91b7ef', desc: 'プレイヤー1人の役職を確認します。' },
   { id: 'mayor', name: '村長', team: '村人陣営', color: '#efc778', desc: '最終投票で2票分として数えます。' },
-  { id: 'vampire', name: '吸血鬼', team: '村人陣営', color: '#c0a2ed', desc: 'プレイヤーまたは墓場の役職と自分の役職を交換します。' },
-  { id: 'doctor', name: '医者', team: '村人陣営', color: '#8bd3c7', desc: 'プレイヤー1人を村人にします。治療しない「休診」も選べます。' },
+  { id: 'vampire', name: '吸血鬼', team: '村人陣営', color: '#c0a2ed', desc: '医者より先に行動し、プレイヤーまたは墓場の役職と自分の役職を交換します。' },
+  { id: 'doctor', name: '医者', team: '村人陣営', color: '#8bd3c7', desc: '吸血鬼の交換後に行動し、指定したプレイヤーの現在の役職を村人にします。治療しない「休診」も選べます。' },
   { id: 'teruteru', name: 'てるてる', team: '単独', color: '#f4d988', desc: '最多票で処刑されると単独勝利します。' }
 ];
 const CARDS = [
@@ -520,7 +520,7 @@ function guide(type = 'roles') {
   const content = document.querySelector('#guideContent');
   const counts = state.room?.roleCounts || state.roleCounts;
   const entries = type === 'flow'
-    ? [['役職確認・夜', '役職を確認して能力を使います。大狼は墓場を見て、人狼と大狼は仲間を確認します。', './assets/icons/night.png'], ['朝の会議', '自由に話し合い、カミングアウトで役職や行動結果を申告できます。', './assets/icons/morning.png'], ['カード提出', '15秒以内に手札から1枚選びます。全員の提出後、カードを見ながら最後の会議へ進みます。', './assets/icons/submit.png'], ['最後の会議・投票', '再び申告や議論をして、自分以外か平和村へ投票します。', './assets/icons/vote.png'], ['墓場と結果', '試合結果で役職・行動・カードと全員の投票先を確認できます。', './assets/icons/grave.png']]
+    ? [['役職確認・夜', '役職確認と夜の行動を行います。行動順は占い師 → 吸血鬼 → 医者です。吸血鬼の交換後に医者が治療するため、交換で人狼になった人が治療対象なら村人になり、交換相手は吸血鬼のままです。大狼は墓場を見て、人狼と大狼は仲間を確認します。', './assets/icons/night.png'], ['朝の会議', '自由に話し合い、カミングアウトで役職や行動結果を申告できます。', './assets/icons/morning.png'], ['カード提出', '15秒以内に手札から1枚選びます。全員の提出後、カードを見ながら最後の会議へ進みます。', './assets/icons/submit.png'], ['最後の会議・投票', '再び申告や議論をして、自分以外か平和村へ投票します。', './assets/icons/vote.png'], ['墓場と結果', '試合結果で役職・行動・カードと全員の投票先を確認できます。', './assets/icons/grave.png']]
     : type === 'roles' ? ROLES.map(item => [`${item.name} — ${counts[item.id] || 0}枚`, `${item.team} — ${item.desc}`, rolePortrait(item.id)])
       : CARDS.map(item => [`${item.name}`, item.desc, cardArtwork(item.id)]);
   content.innerHTML = entries.map(([heading, text, art]) => `<div class="guide-entry">${art ? `<img class="guide-art" src="${art}" alt="">` : ''}<div><b>${esc(heading)}</b><p>${esc(text)}</p></div></div>`).join('');
